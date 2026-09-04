@@ -64,7 +64,6 @@
         }
         .btn-status { background-color: #e67e22; }
         .btn-pot { background-color: #d35400; }
-        .btn-match { background-color: #2980b9; }
         .btn-ai { background-color: #8e44ad; }
         .btn-t1 { background-color: #e67e22; }
         .btn-t2 { background-color: #2980b9; }
@@ -107,18 +106,8 @@
 </div>
 
 <script>
-    // Eingebauter Notfall-Spielplan, falls die API streikt
-    const fallbackMatches = [
-        { name: "FC Bayern München - Borussia Dortmund", home: "FC Bayern München", away: "Borussia Dortmund" },
-        { name: "Bayer Leverkusen - RB Leipzig", home: "Bayer Leverkusen", away: "RB Leipzig" },
-        { name: "VfB Stuttgart - Eintracht Frankfurt", home: "VfB Stuttgart", away: "Eintracht Frankfurt" },
-        { name: "Borussia Mönchengladbach - Werder Bremen", home: "Borussia Mönchengladbach", away: "Werder Bremen" },
-        { name: "1. FC Union Berlin - SC Freiburg", home: "1. FC Union Berlin", away: "SC Freiburg" }
-    ];
-
     let currentMatches = [];
 
-    // Kaderstärken-Matrix als Basis für die KI-Prognose
     const powerRankings = {
         "FC Bayern München": 95,
         "Bayer Leverkusen": 90,
@@ -172,7 +161,6 @@
         select.innerHTML = '<option value="">Lade aktuelle Spiele...</option>';
         
         try {
-            // Versuch über API
             const response = await fetch('https://api.allorigins.win/get?url=' + encodeURIComponent('https://api.openligadb.de/getmatchdata/bl1/2026'));
             if (!response.ok) throw new Error('Netzwerkfehler');
             const data = await response.json();
@@ -185,25 +173,19 @@
                 home: match.team1.teamName,
                 away: match.team2.teamName
             }));
-            fillMatchDropdown();
+            
+            select.innerHTML = '<option value="">-- Bitte Spiel wählen --</option>';
+            currentMatches.forEach((match, index) => {
+                let opt = document.createElement('option');
+                opt.value = index;
+                opt.text = match.name;
+                select.appendChild(opt);
+            });
+            document.getElementById('statusInfo').value = "Bereit zum Tippen";
         } catch (error) {
-            // Automatischer Fallback, damit die App sofort wieder läuft
-            console.warn("API blockiert, nutze Notfall-Spielplan.");
-            currentMatches = fallbackMatches;
-            fillMatchDropdown();
+            select.innerHTML = '<option value="">Fehler beim Laden (Netzwerk prüfen)</option>';
+            document.getElementById('statusInfo').value = "Fehler beim Laden";
         }
-    }
-
-    function fillMatchDropdown() {
-        const select = document.getElementById('matchSelect');
-        select.innerHTML = '<option value="">-- Bitte Spiel wählen --</option>';
-        currentMatches.forEach((match, index) => {
-            let opt = document.createElement('option');
-            opt.value = index;
-            opt.text = match.name;
-            select.appendChild(opt);
-        });
-        document.getElementById('statusInfo').value = "Bereit zum Tippen";
     }
 
     function updateMatchSelection() {
@@ -229,21 +211,20 @@
         let strengthHome = powerRankings[homeTeam] || 70;
         let strengthAway = powerRankings[awayTeam] || 70;
 
-        // Heimvorteil-Bonus
-        strengthHome += 4;
+        strengthHome += 4; // Heimvorteil
 
         let diff = strengthHome - strengthAway;
         let goalsHome, goalsAway;
 
         if (diff > 10) {
-            goalsHome = Math.floor(Math.random() * 2) + 2; // 2 bis 3
-            goalsAway = Math.floor(Math.random() * 2);     // 0 bis 1
+            goalsHome = Math.floor(Math.random() * 2) + 2;
+            goalsAway = Math.floor(Math.random() * 2);
         } else if (diff < -10) {
-            goalsHome = Math.floor(Math.random() * 2);     // 0 bis 1
-            goalsAway = Math.floor(Math.random() * 2) + 2; // 2 bis 3
+            goalsHome = Math.floor(Math.random() * 2);
+            goalsAway = Math.floor(Math.random() * 2) + 2;
         } else {
-            goalsHome = Math.floor(Math.random() * 3);     // 0 bis 2
-            goalsAway = Math.floor(Math.random() * 3);     // 0 bis 2
+            goalsHome = Math.floor(Math.random() * 3);
+            goalsAway = Math.floor(Math.random() * 3);
         }
 
         document.getElementById('tipEcki').value = `${goalsHome}:${goalsAway}`;
