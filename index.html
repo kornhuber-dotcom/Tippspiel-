@@ -84,7 +84,6 @@
 
     document.addEventListener("DOMContentLoaded", function() {
         document.getElementById('pottBisher').value = localStorage.getItem('pottBisherStand') || '0';
-        document.getElementById('meinTIPS').value = localStorage.getItem('meinTippStand') || ''; // Korrigiert weiter unten
         document.getElementById('meinTipp').value = localStorage.getItem('meinTippStand') || '';
         document.getElementById('kumpelTipp').value = localStorage.getItem('kumpelTippStand') || '';
 
@@ -100,11 +99,8 @@
                 if(Array.isArray(data)) {
                     data.forEach(entry => {
                         aktuelleTabelle[entry.teamName] = {
-                            rank: entry.rank,
-                            points: entry.points,
-                            won: entry.won,
-                            lost: entry.lost,
-                            goalDiff: entry.goalDiff
+                            rank: Number(entry.rank) || 10,
+                            points: Number(entry.points) || 0
                         };
                     });
                 }
@@ -219,24 +215,21 @@
         document.getElementById('pottNeu').innerText = bisher + 4;
     }
 
-    // Feste Basis-Stärkewerte für bekannte Bundesliga-Kaliber + Live-Tabellen-Abgleich
     function getTeamPower(teamName) {
         let basePower = 10;
         const name = teamName.toLowerCase();
         
-        // Feste historische & kader-basierte Gewichtung
         if (name.includes('bayern') || name.includes('dortmund')) basePower = 25;
         else if (name.includes('leverkusen') || name.includes('leipzig') || name.includes('frankfurt')) basePower = 22;
         else if (name.includes('stuttgart') || name.includes('freiburg') || name.includes('wolfsburg') || name.includes('gladbach')) basePower = 17;
         else if (name.includes('union') || name.includes('mainz') || name.includes('bremen') || name.includes('hoffenheim') || name.includes('augsburg')) basePower = 14;
-        else if (name.includes('heidenheim') || name.includes('st. pauli') || name.includes('kiel') || name.includes('bochum')) basePower = 11;
+        else if (name.includes('heidenheim') || name.includes('st. pauli') || name.includes('kiel') || name.includes('bochum') || name.includes('schalke')) basePower = 11;
         
-        // Falls die Live-Tabelle Daten liefert, fließen die echten Punkte/Platzierungen mit ein
         if (aktuelleTabelle[teamName]) {
             let t = aktuelleTabelle[teamName];
-            basePower += (t.points * 0.8) + ((20 - t.rank) * 0.5);
+            basePower += (Number(t.points) * 0.8) + ((20 - Number(t.rank)) * 0.5);
         }
-        return basePower;
+        return Number(basePower);
     }
 
     function generiereAiTipp() {
@@ -247,14 +240,13 @@
         }
 
         const match = aktuelleSpieleDaten[selectedIndex];
-        const t1 = match.team1.teamName; // Heimteam
-        const t2 = match.team2.teamName; // Auswärtsteam
+        const t1 = match.team1.teamName;
+        const t2 = match.team2.teamName;
 
         let stärke1 = getTeamPower(t1);
         let stärke2 = getTeamPower(t2);
 
-        // Heimvorteil-Faktor für das Heimteam
-        stärke1 += 3.0;
+        stärke1 += 3.0; // Heimvorteil
 
         let diff = stärke1 - stärke2;
         let toreHeim = 1;
@@ -273,7 +265,6 @@
         } else if (diff < -1.5) {
             toreHeim = 1; toreGast = 2;
         } else {
-            // Enges Spiel / Remis-Tendenz
             toreHeim = 1; toreGast = 1;
         }
 
