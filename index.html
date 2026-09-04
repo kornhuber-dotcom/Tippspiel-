@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bundesliga Tippspiel Manager</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 15px; background: #f0f2f5; color: #1c1e21; max-width: 500px; margin: auto; }
+        .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); margin-bottom: 15px; }
+        h2 { margin-top: 0; color: #075e54; }
+        label { font-weight: bold; display: block; margin-top: 12px; font-size: 0.9em; }
+        input, select { width: 100%; padding: 10px; margin-top: 5px; border: 1px solid #ccc; border-radius: 8px; box-sizing: border-box; font-size: 1em; background: white; }
+        
+        .status-box { background: #e8f5e9; border: 2px solid #25d366; border-radius: 8px; padding: 12px; text-align: center; font-weight: bold; font-size: 1.1em; color: #1b5e20; margin-bottom: 15px; }
+        .pott-display { font-size: 1.2em; font-weight: bold; color: #d32f2f; text-align: center; margin: 10px 0; background: #ffebee; padding: 8px; border-radius: 8px; }
+        
+        .btn-group { display: flex; flex-direction: column; gap: 8px; margin-top: 15px; }
+        button { width: 100%; color: white; border: none; padding: 12px; border-radius: 8px; font-weight: bold; font-size: 0.95em; cursor: pointer; text-align: left; }
+        .btn-green { background: #25d366; }
+        .btn-green:hover { background: #128c7e; }
+        .btn-orange { background: #ff9800; }
+        .btn-orange:hover { background: #e65100; }
+        .btn-blue { background: #0288d1; }
+        .btn-blue:hover { background: #01579b; }
+        .btn-purple { background: #9c27b0; }
+        .btn-purple:hover { background: #7b1fa2; }
+        .btn-switch { background: #607d8b; text-align: center; margin-top: 10px; }
+        .btn-switch:hover { background: #455a64; }
+        
+        textarea { width: 100%; height: 160px; margin-top: 10px; border-radius: 8px; border: 1px solid #ccc; padding: 10px; box-sizing: border-box; font-family: sans-serif; }
+    </style>
+</head>
+<body>
+
+<div class="card">
+    <h2>⚽ Tippspiel Manager</h2>
+    
+    <div class="status-box" id="dranAnzeige">
+        🎯 An der Reihe: Steffi sucht aus
+    </div>
+
+    <label>Aktueller Pott-Stand bisher (€):</label>
+    <input type="number" id="pottBisher" value="0" step="2" onchange="speichereDaten()">
+
+    <div class="pott-display">💰 Pott am Wochenende: <span id="pottNeu">4</span> Euro</div>
+
+    <label>Bundesliga-Spiel auswählen:</label>
+    <select id="spielDropdown" onchange="speichereDaten()">
+        <option value="">Lade aktuelle Spiele...</option>
+    </select>
+
+    <label>Dein Tipp (Ecki):</label>
+    <input type="text" id="meinTipp" placeholder="z. B. 2:1" oninput="speichereDaten()">
+
+    <label>Tipp von Steffi:</label>
+    <input type="text" id="kumpelTipp" placeholder="z. B. 1:1" oninput="speichereDaten()">
+
+    <div class="btn-group">
+        <button class="btn-orange" onclick="generiereAufforderung()">📩 Text 1: Steffi auffordern</button>
+        <button class="btn-blue" onclick="generiereEigenesSpiel()">🎯 Text 2: Ecki wählt & tippt vor</button>
+        <button class="btn-green" onclick="generiereKomplett()">✅ Text 3: Beide Tipps stehen fest</button>
+        <button class="btn-purple" onclick="wertungPruefen()">🏆 Text 4: Auswertung & Ergebnis abrufen</button>
+        
+        <button class="btn-switch" onclick="wechselDran()">🔄 Reihe wechseln (Wer ist nächste Woche dran?)</button>
+    </div>
+</div>
+
+<div class="card" id="outputCard" style="display: none;">
+    <h3>Generierter WhatsApp-Text:</h3>
+    <textarea id="whatsappText" readonly></textarea>
+    <button onclick="kopiereText()" style="background: #333; text-align: center;">📋 In Zwischenablage kopieren</button>
+</div>
+
+<script>
+    let werIstDran = localStorage.getItem('werIstDran') || 'Steffi';
+    let aktuelleSpieleDaten = [];
+
+    document.addEventListener("DOMContentLoaded", function() {
+        // Gespeicherte Werte beim Start laden
+        document.getElementById('pottBisher').value = localStorage.getItem('pottBisherStand') || '0';
+        document.getElementById('meinTipp').value = localStorage.getItem('meinTippStand') || '';
+        document.getElementById('kumpelTipp').value = localStorage.getItem('kumpelTippStand') || '';
+
+        berechnePott();
+        ladeBundesligaSpiele();
+        aktualisiereAnzeige();
+    });
+
+    function speichereDaten() {
+        localStorage.setItem('pottBisherStand', document.getElementById('pottBisher').value);
+        localStorage.setItem('spielIndexStand', document.getElementById('spielDropdown').value);
+        localStorage.setItem('meinTippStand', document.getElementById('meinTipp').value);
+        localStorage.setItem('kumpelTippStand', document.getElementById('kumpelTipp').value);
+        berechnePott();
+    }
+
+    function aktualisiereAnzeige() {
+        const anzeige = document.getElementById('dranAnzeige');
+        if (werIstDran === 'Steffi') {
+            anzeige.innerText = "🎯 Diese Woche ist STEFFI dran mit Aussuchen";
+            anzeige.style.borderColor = "#ff9800";
+            anzeige.style.color = "#e65100";
+            anzeige.style.backgroundColor = "#fff3e0";
+        } else {
+            anzeige.innerText = "🎯 Diese Woche ist ECKI dran mit Aussuchen";
+            anzeige.style.borderColor = "#0288d1";
+            anzeige.style.color = "#01579b";
+            anzeige.style.backgroundColor = "#e1f5fe";
+        }
+    }
+
+    function wechselDran() {
+        werIstDran = (werIstDran === 'Steffi') ? 'Ecki' : 'Steffi';
+        localStorage.setItem('werIstDran', werIstDran);
+        aktualisiereAnzeige();
+    }
+
+    function ladeBundesligaSpiele() {
+        const dropdown = document.getElementById('spielDropdown');
+        
+        fetch('https://api.openligadb.de/getmatchdata/bl1')
+            .then(response => response.json())
+            .then(data => {
+                aktuelleSpieleDaten = data;
+                dropdown.innerHTML = '<option value="">-- Spiel auswählen --</option>';
+                
+                data.forEach((match, index) => {
+                    const option = document.createElement('option');
+                    const heim = match.team1.teamName;
+                    const gast = match.team2.teamName;
+                    
+                    const spielDatum = new Date(match.matchDateTime);
+                    const wochentag = spielDatum.toLocaleDateString('de-DE', { weekday: 'short' });
+                    const uhrzeit = spielDatum.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
+                    
+                    option.textContent = `${wochentag}, ${uhrzeit} Uhr | ${heim} gegen ${gast}`;
+                    option.value = index;
+                    
+                    dropdown.appendChild(option);
+                });
+
+                // Nach dem Laden der Spieldaten das zuvor ausgewählte Spiel wiederherstellen
+                const gemerktesSpiel = localStorage.getItem('spielIndexStand');
+                if (gemerktesSpiel !== null && gemerktesSpiel !== "") {
+                    dropdown.value = gemerktesSpiel;
+                }
+            })
+            .catch(error => {
+                console.error('Fehler beim Laden der Spieldaten:', error);
+                dropdown.innerHTML = '<option value="">Fehler beim Laden</option>';
+            });
+    }
+
+    function berechnePott() {
+        const bisher = parseFloat(document.getElementById('pottBisher').value) || 0;
+        document.getElementById('pottNeu').innerText = bisher + 4;
+    }
+
+    function zeigeOutput(text) {
+        document.getElementById('whatsappText').value = text;
+        document.getElementById('outputCard').style.display = "block";
+    }
+
+    function generiereAufforderung() {
+        const pott = document.getElementById('pottNeu').innerText;
+        const text = `Hallo liebe Steffi,\nwieder steht unser Tippspiel an ⚽, suchst du bitte ein Spiel aus? Im Pott sind ${pott} Euro 💰.\n\nLiebe Grüße\nEcki 🍀`;
+        zeigeOutput(text);
+    }
+
+    function generiereEigenesSpiel() {
+        const selectedIndex = document.getElementById('spielDropdown').value;
+        if (selectedIndex === "") { alert("Bitte wähle zuerst ein Spiel aus!"); return; }
+        
+        const match = aktuelleSpieleDaten[selectedIndex];
+        const spiel = `${match.team1.teamName} gegen ${match.team2.teamName}`;
+        const tipp = document.getElementById('meinTipp').value || "[dein Tipp]";
+        const pott = document.getElementById('pottNeu').innerText;
+
+        const text = `Hallo liebe Steffi,\nwieder steht unser Tippspiel an ⚽, wir nehmen diesmal ${spiel} und ich tippe ${tipp} 🎯. Im Pott sind ${pott} Euro 💰.\n\nLiebe Grüße\nEcki 🍀`;
+        zeigeOutput(text);
+    }
+
+    function generiereKomplett() {
+        const selectedIndex = document.getElementById('spielDropdown').value;
+        if (selectedIndex === "") { alert("Bitte wähle zuerst ein Spiel aus!"); return; }
+        
+        const match = aktuelleSpieleDaten[selectedIndex];
+        const spiel = `${match.team1.teamName} gegen ${match.team2.teamName}`;
+        const meinTipp = document.getElementById('meinTipp').value || "-:-";
+        const kumpelTipp = document.getElementById('kumpelTipp').value || "-:-";
+        const pott = document.getElementById('pottNeu').innerText;
+
+        if (meinTipp !== "-:-" && meinTipp === kumpelTipp) {
+            alert("Achtung: Ihr könnt nicht das gleiche Ergebnis tippen!");
+            return;
+        }
+
+        const text = `Hallo liebe Steffi,\nunser Tipp steht fest! ⚽\n\n📌 Spiel: ${spiel}\n👤 Ecki: ${meinTipp}\n👤 Steffi: ${kumpelTipp}\n\n💰 Im Pott sind ${pott} Euro.\n\nLiebe Grüße\nEcki 🍀`;
+        zeigeOutput(text);
+    }
+
+    function wertungPruefen() {
+        const selectedIndex = document.getElementById('spielDropdown').value;
+        if (selectedIndex === "") { alert("Bitte wähle zuerst das Spiel aus, das ausgewertet werden soll!"); return; }
+
+        const match = aktuelleSpieleDaten[selectedIndex];
+        const spielName = `${match.team1.teamName} gegen ${match.team2.teamName}`;
+        const meinTipp = document.getElementById('meinTipp').value.trim();
+        const steffiTipp = document.getElementById('kumpelTipp').value.trim();
+        const pottNeu = parseFloat(document.getElementById('pottNeu').innerText);
+
+        if (!match.matchIsFinished) {
+            alert("Das Spiel ist noch nicht beendet oder die Daten liegen noch nicht vor!");
+            return;
+        }
+
+        const endResult = match.matchResults.find(r => r.resultName === "Endergebnis") || match.matchResults[match.matchResults.length - 1];
+        const ergebnisText = `${endResult.pointsTeam1}:${endResult.pointsTeam2}`;
+
+        let gewinnText = "";
+        
+        if (ergebnisText === steffiTipp) {
+            gewinnText = `🎉 Dein Volltreffer! Du gewinnst den Pott von ${pottNeu} Euro. Ich freue mich für dich. 🏆`;
+            document.getElementById('pottBisher').value = 0;
+        } else if (ergebnisText === meinTipp) {
+            gewinnText = `🎉 Mein Volltreffer! Ich gewinne den Pott von ${pottNeu} Euro. 🏆`;
+            document.getElementById('pottBisher').value = 0;
+        } else {
+            gewinnText = `Niemand hat richtig getippt. 🙁 Der Pott bleibt stehen und wächst weiter! 💰`;
+            document.getElementById('pottBisher').value = pottNeu;
+        }
+
+        // Tipps nach Auswertung zurücksetzen für die nächste Woche
+        document.getElementById('meinTipp').value = "";
+        document.getElementById('kumpelTipp').value = "";
+        speichereDaten();
+
+        const whatsappAuswertung = `Hallo liebe Steffi,\ndas Spiel ist aus! ⚽\n\n📌 ${spielName}\n📊 Endergebnis: ${ergebnisText}\n\n👤 Ecki tippte: ${meinTipp}\n👤 Steffi tippte: ${steffiTipp}\n\n${gewinnText}\n\nLiebe Grüße und eine schöne Woche 🍀\nEcki`;
+
+        zeigeOutput(whatsappAuswertung);
+    }
+
+    function kopiereText() {
+        const textFeld = document.getElementById('whatsappText');
+        textFeld.select();
+        document.execCommand('copy');
+        alert("Text kopiert! Du kannst ihn jetzt bei WhatsApp einfügen.");
+    }
+</script>
+
+</body>
+</html>
