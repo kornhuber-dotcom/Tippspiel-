@@ -93,7 +93,8 @@
     });
 
     function ladeTabellenDaten() {
-        fetch('https://api.openligadb.de/getbltable/bl1')
+        const proxyUrl = 'https://api.allorigins.win/raw?url=' + encodeURIComponent('https://api.openligadb.de/getbltable/bl1');
+        fetch(proxyUrl)
             .then(res => res.json())
             .then(data => {
                 if(Array.isArray(data)) {
@@ -164,7 +165,9 @@
 
     function ladeBundesligaSpiele() {
         const dropdown = document.getElementById('spielDropdown');
-        fetch('https://api.openligadb.de/getmatchdata/bl1')
+        const proxyUrl = 'https://api.allorigins.win/raw?url=' + encodeURIComponent('https://api.openligadb.de/getmatchdata/bl1');
+        
+        fetch(proxyUrl)
             .then(response => response.json())
             .then(data => {
                 aktuelleSpieleDaten = data;
@@ -185,7 +188,7 @@
                 }
             })
             .catch(error => {
-                dropdown.innerHTML = '<option value="">Fehler beim Laden</option>';
+                dropdown.innerHTML = '<option value="">Fehler beim Laden (Netzwerk prüfen)</option>';
             });
     }
 
