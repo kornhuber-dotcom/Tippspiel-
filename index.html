@@ -130,11 +130,8 @@
                     const heim = match.team1.teamName;
                     const gast = match.team2.teamName;
                     
-                    const spielDatum = new Date(match.matchDateTime);
-                    const wochentag = spielDatum.toLocaleDateString('de-DE', { weekday: 'short' });
-                    const uhrzeit = spielDatum.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
-                    
-                    option.textContent = `${wochentag}, ${uhrzeit} Uhr | ${heim} gegen ${gast}`;
+                    // Nur noch die Teams im Dropdown anzeigen, da Datum oben drüber steht
+                    option.textContent = `${heim} gegen ${gast}`;
                     option.value = index;
                     
                     dropdown.appendChild(option);
