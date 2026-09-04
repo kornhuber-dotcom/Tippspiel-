@@ -11,6 +11,10 @@
         label { font-weight: bold; display: block; margin-top: 12px; font-size: 0.9em; }
         input, select { width: 100%; padding: 10px; margin-top: 5px; border: 1px solid #ccc; border-radius: 8px; box-sizing: border-box; font-size: 1em; background: white; }
         
+        .tipp-container { display: flex; align-items: center; gap: 10px; margin-top: 5px; }
+        .tipp-container input { text-align: center; font-size: 1.2em; font-weight: bold; }
+        .tipp-doppelpunkt { font-size: 1.5em; font-weight: bold; color: #555; margin-top: 5px; }
+
         .status-box { background: #e8f5e9; border: 2px solid #25d366; border-radius: 8px; padding: 12px; text-align: center; font-weight: bold; font-size: 1.1em; color: #1b5e20; margin-bottom: 15px; }
         .spieltag-header { font-size: 1.05em; font-weight: bold; color: #0288d1; margin-bottom: 5px; text-align: center; background: #e1f5fe; padding: 8px; border-radius: 6px; }
         .pott-display { font-size: 1.2em; font-weight: bold; color: #d32f2f; text-align: center; margin: 10px 0; background: #ffebee; padding: 8px; border-radius: 8px; }
@@ -52,10 +56,18 @@
     </select>
 
     <label>Dein Tipp (Ecki):</label>
-    <input type="text" id="meinTipp" inputmode="decimal" placeholder="z. B. 2:1" oninput="speichereDaten()">
+    <div class="tipp-container">
+        <input type="number" id="meinTipp1" placeholder="0" min="0" max="99" oninput="speichereDaten()">
+        <span class="tipp-doppelpunkt">:</span>
+        <input type="number" id="meinTipp2" placeholder="0" min="0" max="99" oninput="speichereDaten()">
+    </div>
 
     <label>Tipp von Steffi:</label>
-    <input type="text" id="kumpelTipp" inputmode="decimal" placeholder="z. B. 1:1" oninput="speichereDaten()">
+    <div class="tipp-container">
+        <input type="number" id="kumpelTipp1" placeholder="0" min="0" max="99" oninput="speichereDaten()">
+        <span class="tipp-doppelpunkt">:</span>
+        <input type="number" id="kumpelTipp2" placeholder="0" min="0" max="99" oninput="speichereDaten()">
+    </div>
 
     <div class="btn-group">
         <button class="btn-orange" onclick="generiereAufforderung()">📩 Text 1: Steffi auffordern</button>
@@ -79,18 +91,45 @@
 
     document.addEventListener("DOMContentLoaded", function() {
         document.getElementById('pottBisher').value = localStorage.getItem('pottBisherStand') || '0';
-        document.getElementById('meinTipp').value = localStorage.getItem('meinTippStand') || '';
-        document.getElementById('kumpelTipp').value = localStorage.getItem('kumpelTippStand') || '';
+        
+        // Werte aus localStorage laden (gespeichert als "heim:gast")
+        const meinTippGespeichert = localStorage.getItem('meinTippStand') || '';
+        if (meinTippGespeichert.includes(':')) {
+            const teile = meinTippGespeichert.split(':');
+            document.getElementById('meinTipp1').value = teile[0];
+            document.getElementById('meinTipp2').value = teile[1];
+        }
+
+        const steffiTippGespeichert = localStorage.getItem('kumpelTippStand') || '';
+        if (steffiTippGespeichert.includes(':')) {
+            const teile = steffiTippGespeichert.split(':');
+            document.getElementById('kumpelTipp1').value = teile[0];
+            document.getElementById('kumpelTipp2').value = teile[1];
+        }
 
         berechnePott();
         ladeBundesligaSpiele();
     });
 
+    function getMeinTipp() {
+        const t1 = document.getElementById('meinTipp1').value;
+        const t2 = document.getElementById('meinTipp2').value;
+        if (t1 === "" || t2 === "") return "";
+        return `${t1}:${t2}`;
+    }
+
+    function getSteffiTipp() {
+        const t1 = document.getElementById('kumpelTipp1').value;
+        const t2 = document.getElementById('kumpelTipp2').value;
+        if (t1 === "" || t2 === "") return "";
+        return `${t1}:${t2}`;
+    }
+
     function speichereDaten() {
         localStorage.setItem('pottBisherStand', document.getElementById('pottBisher').value);
         localStorage.setItem('spielIndexStand', document.getElementById('spielDropdown').value);
-        localStorage.setItem('meinTippStand', document.getElementById('meinTipp').value);
-        localStorage.setItem('kumpelTippStand', document.getElementById('kumpelTipp').value);
+        localStorage.setItem('meinTippStand', getMeinTipp());
+        localStorage.setItem('kumpelTippStand', getSteffiTipp());
         berechnePott();
     }
 
@@ -214,7 +253,7 @@
         
         const match = aktuelleSpieleDaten[selectedIndex];
         const spiel = `${match.team1.teamName} gegen ${match.team2.teamName}`;
-        const tipp = document.getElementById('meinTipp').value || "[dein Tipp]";
+        const tipp = getMeinTipp() || "[dein Tipp]";
         const pott = document.getElementById('pottNeu').innerText;
 
         const text = `Hallo liebe Steffi,\nwieder steht unser Tippspiel an ⚽, wir nehmen diesmal ${spiel} und ich tippe ${tipp} 🎯. Im Pott sind ${pott} Euro 💰.\n\nLiebe Grüße und ein schönes Wochenende\nEcki 🍀`;
@@ -227,8 +266,8 @@
         
         const match = aktuelleSpieleDaten[selectedIndex];
         const spiel = `${match.team1.teamName} gegen ${match.team2.teamName}`;
-        const meinTipp = document.getElementById('meinTipp').value || "-:-";
-        const kumpelTipp = document.getElementById('kumpelTipp').value || "-:-";
+        const meinTipp = getMeinTipp() || "-:-";
+        const kumpelTipp = getSteffiTipp() || "-:-";
         const pott = document.getElementById('pottNeu').innerText;
 
         if (meinTipp !== "-:-" && meinTipp === kumpelTipp) {
@@ -246,8 +285,8 @@
 
         const match = aktuelleSpieleDaten[selectedIndex];
         const spielName = `${match.team1.teamName} gegen ${match.team2.teamName}`;
-        const meinTipp = document.getElementById('meinTipp').value.trim();
-        const steffiTipp = document.getElementById('kumpelTipp').value.trim();
+        const meinTipp = getMeinTipp();
+        const steffiTipp = getSteffiTipp();
         const pottNeu = parseFloat(document.getElementById('pottNeu').innerText);
 
         if (!match.matchIsFinished) {
@@ -271,8 +310,10 @@
             document.getElementById('pottBisher').value = pottNeu;
         }
 
-        document.getElementById('meinTipp').value = "";
-        document.getElementById('kumpelTipp').value = "";
+        document.getElementById('meinTipp1').value = "";
+        document.getElementById('meinTipp2').value = "";
+        document.getElementById('kumpelTipp1').value = "";
+        document.getElementById('kumpelTipp2').value = "";
         speichereDaten();
 
         const whatsappAuswertung = `Hallo liebe Steffi,\ndas Spiel ist aus! ⚽\n\n📌 ${spielName}\n📊 Endergebnis: ${ergebnisText}\n\n👤 Ecki tippte: ${meinTipp}\n👤 Steffi tippte: ${steffiTipp}\n\n${gewinnText}\n\nLiebe Grüße und eine schöne Woche 🍀\nEcki`;
