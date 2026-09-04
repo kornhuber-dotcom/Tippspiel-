@@ -12,7 +12,7 @@
         input, select { width: 100%; padding: 10px; margin-top: 5px; border: 1px solid #ccc; border-radius: 8px; box-sizing: border-box; font-size: 1em; background: white; }
         
         .status-box { background: #e8f5e9; border: 2px solid #25d366; border-radius: 8px; padding: 12px; text-align: center; font-weight: bold; font-size: 1.1em; color: #1b5e20; margin-bottom: 15px; }
-        .spieltag-header { font-size: 1.05em; font-weight: bold; color: #0288d1; margin-bottom: 5px; text-align: center; background: #e1f5fe; padding: 8px; border-radius: 6px; display: none; }
+        .spieltag-header { font-size: 1.05em; font-weight: bold; color: #0288d1; margin-bottom: 5px; text-align: center; background: #e1f5fe; padding: 8px; border-radius: 6px; }
         .pott-display { font-size: 1.2em; font-weight: bold; color: #d32f2f; text-align: center; margin: 10px 0; background: #ffebee; padding: 8px; border-radius: 8px; }
         
         .btn-group { display: flex; flex-direction: column; gap: 8px; margin-top: 15px; }
@@ -45,7 +45,7 @@
 
     <div class="pott-display">💰 Pott am Wochenende: <span id="pottNeu">4</span> Euro</div>
 
-    <div id="spieltagUeberschrift" class="spieltag-header">📅 Spieltermin wird angezeigt</div>
+    <div id="spieltagUeberschrift" class="spieltag-header">📅 Bitte Spiel auswählen</div>
     <label>Bundesliga-Spiel auswählen:</label>
     <select id="spielDropdown" onchange="zeigeSpieltagDatum(); speichereDaten();">
         <option value="">Lade aktuelle Spiele...</option>
@@ -157,7 +157,7 @@
         const ueberschriftBox = document.getElementById('spieltagUeberschrift');
 
         if (selectedIndex === "" || !aktuelleSpieleDaten[selectedIndex]) {
-            ueberschriftBox.style.display = "none";
+            ueberschriftBox.innerText = "📅 Bitte Spiel auswählen";
             return;
         }
 
@@ -167,8 +167,7 @@
         const optionFormat = { weekday: 'long', day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' };
         const datumText = spielDatum.toLocaleDateString('de-DE', optionFormat);
 
-        ueberschriftBox.innerText = `📅 Spieldatum: ${datumText} Uhr`;
-        ueberschriftBox.style.display = "block";
+        ueberschriftBox.innerText = `📅 ${datumText} Uhr`;
     }
 
     function berechnePott() {
@@ -244,7 +243,7 @@
             document.getElementById('pottBisher').value = 0;
         } else if (ergebnisText === meinTipp) {
             gewinnText = `🎉 Mein Volltreffer! Ich gewinne den Pott von ${pottNeu} Euro. 🏆`;
-            document.getElementById('pottBisher').value, 0;
+            document.getElementById('pottBisher').value = 0;
         } else {
             gewinnText = `Niemand hat richtig getippt. 🙁 Der Pott bleibt stehen und wächst weiter! 💰`;
             document.getElementById('pottBisher').value = pottNeu;
