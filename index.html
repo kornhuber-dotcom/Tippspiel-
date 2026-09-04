@@ -12,7 +12,7 @@
         input, select { width: 100%; padding: 10px; margin-top: 5px; border: 1px solid #ccc; border-radius: 8px; box-sizing: border-box; font-size: 1em; background: white; }
         
         .status-box { background: #e8f5e9; border: 2px solid #25d366; border-radius: 8px; padding: 12px; text-align: center; font-weight: bold; font-size: 1.1em; color: #1b5e20; margin-bottom: 15px; }
-        .spieltag-header { font-size: 1.05em; font-weight: bold; color: #0288d1; margin-bottom: 5px; text-align: center; background: #e1f5fe; padding: 6px; border-radius: 6px; }
+        .spieltag-header { font-size: 1.05em; font-weight: bold; color: #0288d1; margin-bottom: 5px; text-align: center; background: #e1f5fe; padding: 8px; border-radius: 6px; }
         .pott-display { font-size: 1.2em; font-weight: bold; color: #d32f2f; text-align: center; margin: 10px 0; background: #ffebee; padding: 8px; border-radius: 8px; }
         
         .btn-group { display: flex; flex-direction: column; gap: 8px; margin-top: 15px; }
@@ -47,7 +47,7 @@
 
     <div id="spieltagUeberschrift" class="spieltag-header" style="display: none;"></div>
     <label>Bundesliga-Spiel auswählen:</label>
-    <select id="spielDropdown" onchange="ermittleUndZeigeSpieltag(); speichereDaten();">
+    <select id="spielDropdown" onchange="zeigeSpieltagDatum(); speichereDaten();">
         <option value="">Lade aktuelle Spiele...</option>
     </select>
 
@@ -78,7 +78,6 @@
     let aktuelleSpieleDaten = [];
 
     document.addEventListener("DOMContentLoaded", function() {
-        // Gespeicherte Werte beim Start laden
         document.getElementById('pottBisher').value = localStorage.getItem('pottBisherStand') || '0';
         document.getElementById('meinTipp').value = localStorage.getItem('meinTippStand') || '';
         document.getElementById('kumpelTipp').value = localStorage.getItem('kumpelTippStand') || '';
@@ -141,11 +140,10 @@
                     dropdown.appendChild(option);
                 });
 
-                // Nach dem Laden der Spieldaten das zuvor ausgewählte Spiel wiederherstellen
                 const gemerktesSpiel = localStorage.getItem('spielIndexStand');
                 if (gemerktesSpiel !== null && gemerktesSpiel !== "") {
                     dropdown.value = gemerktesSpiel;
-                    ermittleUndZeigeSpieltag();
+                    zeigeSpieltagDatum();
                 }
             })
             .catch(error => {
@@ -154,7 +152,7 @@
             });
     }
 
-    function ermittleUndZeigeSpieltag() {
+    function zeigeSpieltagDatum() {
         const selectedIndex = document.getElementById('spielDropdown').value;
         const ueberschriftBox = document.getElementById('spieltagUeberschrift');
 
@@ -164,30 +162,19 @@
         }
 
         const match = aktuelleSpieleDaten[selectedIndex];
-        const spieltagName = match.groupNames ? match.groupNames.groupName : "Spieltag";
-
-        // Wir sammeln alle Spieldaten aus der API, um das echte erste und letzte Datum dieses spezifischen Spieltags zu finden
-        let minDate = new Date(match.matchDateTime);
-        let maxDate = new Date(match.matchDateTime);
-
-        if (match.groupNames && match.groupNames.groupOrderID) {
-            const currentGroupID = match.groupNames.groupOrderID;
-            const sameGroupMatches = aktuelleSpieleDaten.filter(m => m.groupNames && m.groupNames.groupOrderID === currentGroupID);
-            
-            sameGroupMatches.forEach(m => {
-                const d = new Date(m.matchDateTime);
-                if (d < minDate) minDate = d;
-                if (d > maxDate) maxDate = d;
-            });
+        
+        // Versuche den Spieltag-Namen direkt aus der API zu lesen, sonst Standard
+        let spieltagName = "Spieltag";
+        if (match.group && match.group.groupName) {
+            spieltagName = match.group.groupName;
+        } else if (match.groupNames && match.groupNames.groupName) {
+            spieltagName = match.groupNames.groupName;
         }
 
-        const options = { day: '2-digit', month: '2-digit', year: 'numeric' };
-        const vonStr = minDate.toLocaleDateString('de-DE', options);
-        const bisStr = maxDate.toLocaleDateString('de-DE', options);
+        const spielDatum = new Date(match.matchDateTime);
+        const datumStr = spielDatum.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' });
 
-        let datumAnzeige = (vonStr === bisStr) ? vonStr : `${vonStr} - ${bisStr}`;
-        
-        ueberschriftBox.innerText = `📅 ${spieltagName} (${datumAnzeige})`;
+        ueberschriftBox.innerText = `📅 ${spieltagName} (am ${datumStr})`;
         ueberschriftBox.style.display = "block";
     }
 
@@ -240,10 +227,11 @@
     }
 
     function wertungPruefen() {
-        const selectedIndex = document.getElementById('spielDropdown').value;
-        if (selectedIndex === "") { alert("Bitte wähle zuerst das Spiel aus, das ausgewertet werden soll!"); return; }
+        const selectedIndex = document.getElementById('spieltagUeberschrift').value; // fallback
+        const dropdownIdx = document.getElementById('spielDropdown').value;
+        if (dropdownIdx === "") { alert("Bitte wähle zuerst das Spiel aus, das ausgewertet werden soll!"); return; }
 
-        const match = aktuelleSpieleDaten[selectedIndex];
+        const match = aktuelleSpieleDaten[dropdownIdx];
         const spielName = `${match.team1.teamName} gegen ${match.team2.teamName}`;
         const meinTipp = document.getElementById('meinTipp').value.trim();
         const steffiTipp = document.getElementById('kumpelTipp').value.trim();
@@ -270,12 +258,11 @@
             document.getElementById('pottBisher').value = pottNeu;
         }
 
-        // Tipps nach Auswertung zurücksetzen für die nächste Woche
         document.getElementById('meinTipp').value = "";
         document.getElementById('kumpelTipp').value = "";
         speichereDaten();
 
-        const whatsappAuswertung = `Hallo liebe Steffi,\ndas Spiel ist aus! ⚽\n\n📌 ${spielName}\n📊 Endergebnis: ${ergebnisText}\n\n👤 Ecki tippte: ${meinTipp}\n👤 Steffi tippte: ${steffiTipp}\n\n${gewinnText}\n\nLiebe Grüße und ein schönes Wochenende 🍀\nEcki`;
+        const whatsappAuswertung = `Hallo liebe Steffi,\ndas Spiel ist aus! ⚽\n\n📌 ${spielName}\n📊 Endergebnis: ${ergebnisText}\n\n👤 Ecki tippte: ${meinTipp}\n👤 Steffi tippte: ${steffiTipp}\n\n${gewinnText}\n\nLiebe Grüße und eine schöne Woche 🍀\nEcki`;
 
         zeigeOutput(whatsappAuswertung);
     }
