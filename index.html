@@ -37,7 +37,7 @@
     <h2>⚽ Tippspiel Manager</h2>
     
     <div class="status-box" id="dranAnzeige">
-        🎯 An der Reihe: Steffi sucht aus
+        🎯 An der Reihe: Lädt...
     </div>
 
     <label>Aktueller Pott-Stand bisher (€):</label>
@@ -63,7 +63,7 @@
         <button class="btn-green" onclick="generiereKomplett()">✅ Text 3: Beide Tipps stehen fest</button>
         <button class="btn-purple" onclick="wertungPruefen()">🏆 Text 4: Auswertung & Ergebnis abrufen</button>
         
-        <button class="btn-switch" onclick="wechselDran()">🔄 Reihe wechseln (Wer ist nächste Woche dran?)</button>
+        <button class="btn-switch" onclick="manuellerWechsel()">🔄 Reihe manuell korrigieren</button>
     </div>
 </div>
 
@@ -74,8 +74,8 @@
 </div>
 
 <script>
-    let werIstDran = localStorage.getItem('werIstDran') || 'Steffi';
     let aktuelleSpieleDaten = [];
+    let manuellerOverride = localStorage.getItem('manuellerOverride') || null;
 
     document.addEventListener("DOMContentLoaded", function() {
         document.getElementById('pottBisher').value = localStorage.getItem('pottBisherStand') || '0';
@@ -84,7 +84,6 @@
 
         berechnePott();
         ladeBundesligaSpiele();
-        aktualisiereAnzeige();
     });
 
     function speichereDaten() {
@@ -95,8 +94,26 @@
         berechnePott();
     }
 
+    function ermittleWerIstDran(match) {
+        if (manuellerOverride !== null) {
+            return manuellerOverride;
+        }
+        // Fallback über die Spieltag-Nummer (groupOrderID) aus der API
+        if (match && match.group && typeof match.group.groupOrderID === 'number') {
+            const spieltagNr = match.group.groupOrderID;
+            // Ungerade Spieltage = Steffi, Gerade Spieltage = Ecki
+            return (spieltagNr % 2 === 0) ? 'Ecki' : 'Steffi';
+        }
+        return 'Steffi'; // Standard-Fallback
+    }
+
     function aktualisiereAnzeige() {
+        const selectedIndex = document.getElementById('spielDropdown').value;
+        const match = (selectedIndex !== "" && aktuelleSpieleDaten[selectedIndex]) ? aktuelleSpieleDaten[selectedIndex] : null;
+        
+        const werIstDran = ermittleWerIstDran(match);
         const anzeige = document.getElementById('dranAnzeige');
+        
         if (werIstDran === 'Steffi') {
             anzeige.innerText = "🎯 Diese Woche ist STEFFI dran mit Aussuchen";
             anzeige.style.borderColor = "#ff9800";
@@ -110,9 +127,13 @@
         }
     }
 
-    function wechselDran() {
-        werIstDran = (werIstDran === 'Steffi') ? 'Ecki' : 'Steffi';
-        localStorage.setItem('werIstDran', werIstDran);
+    function manuellerWechsel() {
+        const selectedIndex = document.getElementById('spielDropdown').value;
+        const match = (selectedIndex !== "" && aktuelleSpieleDaten[selectedIndex]) ? aktuelleSpieleDaten[selectedIndex] : null;
+        const aktuell = ermittleWerIstDran(match);
+        
+        manuellerOverride = (aktuell === 'Steffi') ? 'Ecki' : 'Steffi';
+        localStorage.setItem('manuellerOverride', manuellerOverride);
         aktualisiereAnzeige();
     }
 
@@ -140,6 +161,8 @@
                 if (gemerktesSpiel !== null && gemerktesSpiel !== "") {
                     dropdown.value = gemerktesSpiel;
                     zeigeSpieltagDatum();
+                } else {
+                    aktualisiereAnzeige();
                 }
             })
             .catch(error => {
@@ -154,6 +177,7 @@
 
         if (selectedIndex === "" || !aktuelleSpieleDaten[selectedIndex]) {
             ueberschriftBox.innerText = "📅 Bitte Spiel auswählen";
+            aktualisiereAnzeige();
             return;
         }
 
@@ -163,7 +187,11 @@
         const optionFormat = { weekday: 'long', day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' };
         const datumText = spielDatum.toLocaleDateString('de-DE', optionFormat);
 
-        ueberschriftBox.innerText = `📅 ${datumText} Uhr`;
+        let spieltagName = match.group && match.group.groupName ? match.group.groupName : "Spieltag";
+        ueberschriftBox.innerText = `📅 ${spieltagName} | ${datumText} Uhr`;
+
+        aktualisiereAnzeige();
+        speichereDaten();
     }
 
     function berechnePott() {
@@ -178,7 +206,7 @@
 
     function generiereAufforderung() {
         const pott = document.getElementById('pottNeu').innerText;
-        const text = `Hallo liebe Steffi,\nwieder steht unser Tippspiel an ⚽, suchst du bitte ein Spiel aus? Im Pott sind ${pott} Euro 💰.\n\nLiebe Grüße\nEcki 🍀`;
+        const text = `Hallo liebe Steffi,\nwieder steht unser Tippspiel an ⚽, suchst du bitte ein Spiel aus? Im Pott sind ${pott} Euro 💰.\n\nLiebe Grüße und ein schönes Wochenende\nEcki 🍀`;
         zeigeOutput(text);
     }
 
