@@ -130,7 +130,6 @@
                     const heim = match.team1.teamName;
                     const gast = match.team2.teamName;
                     
-                    // Hier steht jetzt bewusst NUR noch Team gegen Team ohne Uhrzeit:
                     option.textContent = `${heim} gegen ${gast}`;
                     option.value = index;
                     
@@ -235,8 +234,6 @@
 
         let gewinnText = "";
         
-        @if (ergebnisText === steffiTipp) { // (wird als JS ausgeführt)
-        }
         if (ergebnisText === steffiTipp) {
             gewinnText = `🎉 Dein Volltreffer! Du gewinnst den Pott von ${pottNeu} Euro. Ich freue mich für dich. 🏆`;
             document.getElementById('pottBisher').value = 0;
