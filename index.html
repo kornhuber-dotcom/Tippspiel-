@@ -53,7 +53,7 @@
         <option value="">Lade aktuelle Spiele...</option>
     </select>
 
-    <button class="btn-ai" onclick="generiereAiTipp()">🤖 Smart-Analyse-Tipp generieren</button>
+    <button class="btn-ai" onclick="generiereAiTipp()">🧠 Multi-Parameter KI-Prognose</button>
 
     <label>Dein Tipp (Ecki):</label>
     <input type="text" id="meinTipp" inputmode="numeric" pattern="[0-9]*" placeholder="z. B. 2:1" maxlength="4" oninput="formatiereTipp(this); speichereDaten()">
@@ -79,6 +79,8 @@
 
 <script>
     let aktuelleSpieleDaten = [];
+    let vorsaisonTabelle = {};
+    let aktuelleTabelle = {};
     let manuellerOverride = localStorage.getItem('manuellerOverride') || null;
 
     document.addEventListener("DOMContentLoaded", function() {
@@ -87,8 +89,43 @@
         document.getElementById('kumpelTipp').value = localStorage.getItem('kumpelTippStand') || '';
 
         berechnePott();
+        ladeTabellenDaten();
         ladeBundesligaSpiele();
     });
+
+    // Lädt die echte aktuelle Tabelle sowie die Vorsaison (z.B. 2025) zur Parameter-Analyse
+    function ladeTabellenDaten() {
+        // Aktuelle Saison Tabelle
+        fetch('https://api.openligadb.de/getbltable/bl1')
+            .then(res => res.json())
+            .then(data => {
+                if(Array.isArray(data)) {
+                    data.forEach(entry => {
+                        aktuelleTabelle[entry.teamName] = {
+                            rank: entry.rank,
+                            points: entry.points,
+                            won: entry.won,
+                            lost: entry.lost,
+                            goalDiff: entry.goalDiff
+                        };
+                    });
+                }
+            }).catch(e => console.log("Aktuelle Tabelle konnte nicht geladen werden", e));
+
+        // Vorsaison Tabelle (z.B. 2025 für historische Stärke)
+        fetch('https://api.openligadb.de/getbltable/bl1/2025')
+            .then(res => res.json())
+            .then(data => {
+                if(Array.isArray(data)) {
+                    data.forEach(entry => {
+                        vorsaisonTabelle[entry.teamName] = {
+                            rank: entry.rank,
+                            points: entry.points
+                        };
+                    });
+                }
+            }).catch(e => console.log("Vorsaison-Tabelle nicht verfügbar", e));
+    }
 
     function formatiereTipp(input) {
         let wert = input.value.replace(/[^0-9]/g, '');
@@ -110,12 +147,9 @@
     }
 
     function ermittleWerIstDran(match) {
-        if (manuellerOverride !== null) {
-            return manuellerOverride;
-        }
+        if (manuellerOverride !== null) return manuellerOverride;
         if (match && match.group && typeof match.group.groupOrderID === 'number') {
-            const spieltagNr = match.group.groupOrderID;
-            return (spieltagNr % 2 === 0) ? 'Ecki' : 'Steffi';
+            return (match.group.groupOrderID % 2 === 0) ? 'Ecki' : 'Steffi';
         }
         return 'Steffi';
     }
@@ -123,7 +157,6 @@
     function aktualisiereAnzeige() {
         const selectedIndex = document.getElementById('spielDropdown').value;
         const match = (selectedIndex !== "" && aktuelleSpieleDaten[selectedIndex]) ? aktuelleSpieleDaten[selectedIndex] : null;
-        
         const werIstDran = ermittleWerIstDran(match);
         const anzeige = document.getElementById('dranAnzeige');
         
@@ -144,7 +177,6 @@
         const selectedIndex = document.getElementById('spielDropdown').value;
         const match = (selectedIndex !== "" && aktuelleSpieleDaten[selectedIndex]) ? aktuelleSpieleDaten[selectedIndex] : null;
         const aktuell = ermittleWerIstDran(match);
-        
         manuellerOverride = (aktuell === 'Steffi') ? 'Ecki' : 'Steffi';
         localStorage.setItem('manuellerOverride', manuellerOverride);
         aktualisiereAnzeige();
@@ -152,21 +184,15 @@
 
     function ladeBundesligaSpiele() {
         const dropdown = document.getElementById('spielDropdown');
-        
         fetch('https://api.openligadb.de/getmatchdata/bl1')
             .then(response => response.json())
             .then(data => {
                 aktuelleSpieleDaten = data;
                 dropdown.innerHTML = '<option value="">-- Spiel auswählen --</option>';
-                
                 data.forEach((match, index) => {
                     const option = document.createElement('option');
-                    const heim = match.team1.teamName;
-                    const gast = match.team2.teamName;
-                    
-                    option.textContent = `${heim} gegen ${gast}`;
+                    option.textContent = `${match.team1.teamName} gegen ${match.team2.teamName}`;
                     option.value = index;
-                    
                     dropdown.appendChild(option);
                 });
 
@@ -179,7 +205,6 @@
                 }
             })
             .catch(error => {
-                console.error('Fehler beim Laden der Spieldaten:', error);
                 dropdown.innerHTML = '<option value="">Fehler beim Laden</option>';
             });
     }
@@ -196,13 +221,11 @@
 
         const match = aktuelleSpieleDaten[selectedIndex];
         const spielDatum = new Date(match.matchDateTime);
-        
         const optionFormat = { weekday: 'long', day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' };
         const datumText = spielDatum.toLocaleDateString('de-DE', optionFormat);
-
         let spieltagName = match.group && match.group.groupName ? match.group.groupName : "Spieltag";
+        
         ueberschriftBox.innerText = `📅 ${spieltagName} | ${datumText} Uhr`;
-
         aktualisiereAnzeige();
         speichereDaten();
     }
@@ -212,7 +235,7 @@
         document.getElementById('pottNeu').innerText = bisher + 4;
     }
 
-    // Intelligente Tipp-Analyse basierend auf Namen & Hash/Team-Stärke
+    // High-End Multi-Parameter KI-Prognose (Aktuelle Form + Vorsaison-Tabellen + Heimvorteil + Tordifferenz)
     function generiereAiTipp() {
         const selectedIndex = document.getElementById('spielDropdown').value;
         if (selectedIndex === "") { 
@@ -221,38 +244,45 @@
         }
 
         const match = aktuelleSpieleDaten[selectedIndex];
-        const t1 = match.team1.teamName;
-        const t2 = match.team2.teamName;
+        const t1 = match.team1.teamName; // Heimteam
+        const t2 = match.team2.teamName; // Auswärtsteam
 
-        // Wir nutzen eine kleine deterministische Logik aus den Namen (Länge & Zeichencodes),
-        // damit es bei demselben Spiel konsistent bleibt, aber realistisch wirkt (z.B. 2:1, 1:1, 0:2 etc.)
-        let sum1 = 0;
-        let sum2 = 0;
-        for(let i = 0; i < t1.length; i++) sum1 += t1.charCodeAt(i);
-        for(let i = 0; i < t2.length; i++) sum2 += t2.charCodeAt(i);
+        // Parameter-Gewichtung ermitteln
+        let stärke1 = 10; // Standardwert
+        let stärke2 = 10;
 
-        // Heimvorteil-Faktor (+0.5 für Team 1)
-        let toreHeim = (sum1 % 3); 
-        let toreGast = (sum2 % 3);
+        // 1. Aktuelle Tabelle einbeziehen (falls vorhanden)
+        if (aktuelleTabelle[t1]) stärke1 += (19 - aktuelleTabelle[t1].rank) * 1.5;
+        if (aktuelleTabelle[t2]) stärke2 += (19 - aktuelleTabelle[t2].rank) * 1.5;
 
-        // Verhindern, dass es zu langweilig wird (falls Modulo 0:0 ergibt, machen wir oft ein 1:1 oder 2:1 daraus)
-        if (toreHeim === 0 && toreGast === 0) {
-            toreHeim = 1;
-            toreGast = 1;
+        // 2. Vorsaison-Platzierung als Fundament einbeziehen
+        if (vorsaisonTabelle[t1]) stärke1 += (19 - vorsaisonTabelle[t1].rank) * 0.8;
+        if (vorsaisonTabelle[t2]) stärke2 += (19 - vorsaisonTabelle[t2].rank) * 0.8;
+
+        // 3. Heimvorteil-Bonus für Team 1
+        stärke1 += 3.5;
+
+        // Tore ableiten based on strengths
+        let toreHeim = Math.round(1 + (stärke1 - stärke2) / 7);
+        let toreGast = Math.round(0.8 + (stärke2 - stärke1) / 9);
+
+        // Realismus-Sicherungen (keine negativen Tore, Obergrenzen)
+        if (toreHeim < 0) toreHeim = 0;
+        if (toreGast < 0) toreGast = 0;
+        if (toreHeim > 5) toreHeim = 4;
+        if (toreGast > 4) toreGast = 3;
+
+        // Falls es exakt Unentschieden steht aber ein Team klar stärker laut Parametern ist, gib ihnen das Tor mehr
+        if (toreHeim === toreGast && Math.abs(stärke1 - stärke2) > 4) {
+            if (stärke1 > stärke2) toreHeim++;
+            else toreGast++;
         }
-        
-        // Leichter Heimvorteil-Bonus
-        if (sum1 % 2 === 0 && toreHeim === toreGast) {
-            toreHeim += 1;
-        }
 
-        constkiTipp = `${toreHeim}:${toreGast}`;
-        
-        // In das Ecki-Tippfeld eintragen
-        document.getElementById('meinTipp').value = constkiTipp;
+        const kiTipp = `${toreHeim}:${toreGast}`;
+        document.getElementById('meinTipp').value = kiTipp;
         speichereDaten();
         
-        alert(`🤖 Smart-Analyse für ${t1} vs ${t2}:\nForm & Statistik ausgewertet!\nEmpfohlener Tipp für Ecki: ${constkiTipp}`);
+        alert(`🧠 Multi-Parameter-Analyse für ${t1} vs ${t2}:\n• Aktuelle Tabelle & Punkte\n• Vorsaison-Platzierung\n• Heimvorteil-Faktor\n\nEmpfohlener Tipp für Ecki: ${kiTipp}`);
     }
 
     function zeigeOutput(text) {
@@ -317,7 +347,6 @@
         const ergebnisText = `${endResult.pointsTeam1}:${endResult.pointsTeam2}`;
 
         let gewinnText = "";
-        
         if (ergebnisText === steffiTipp) {
             gewinnText = `🎉 Dein Volltreffer! Du gewinnst den Pott von ${pottNeu} Euro. Ich freue mich für dich. 🏆`;
             document.getElementById('pottBisher').value = 0;
@@ -334,7 +363,6 @@
         speichereDaten();
 
         const whatsappAuswertung = `Hallo liebe Steffi,\ndas Spiel ist aus! ⚽\n\n📌 ${spielName}\n📊 Endergebnis: ${ergebnisText}\n\n👤 Ecki tippte: ${meinTipp}\n👤 Steffi tippte: ${steffiTipp}\n\n${gewinnText}\n\nLiebe Grüße und eine schöne Woche 🍀\nEcki`;
-
         zeigeOutput(whatsappAuswertung);
     }
 
