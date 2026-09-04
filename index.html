@@ -52,10 +52,10 @@
     </select>
 
     <label>Dein Tipp (Ecki):</label>
-    <input type="text" id="meinTipp" placeholder="z. B. 2:1" oninput="speichereDaten()">
+    <input type="text" id="meinTipp" inputmode="decimal" placeholder="z. B. 2:1" oninput="speichereDaten()">
 
     <label>Tipp von Steffi:</label>
-    <input type="text" id="kumpelTipp" placeholder="z. B. 1:1" oninput="speichereDaten()">
+    <input type="text" id="kumpelTipp" inputmode="decimal" placeholder="z. B. 1:1" oninput="speichereDaten()">
 
     <div class="btn-group">
         <button class="btn-orange" onclick="generiereAufforderung()">📩 Text 1: Steffi auffordern</button>
@@ -98,13 +98,11 @@
         if (manuellerOverride !== null) {
             return manuellerOverride;
         }
-        // Fallback über die Spieltag-Nummer (groupOrderID) aus der API
         if (match && match.group && typeof match.group.groupOrderID === 'number') {
             const spieltagNr = match.group.groupOrderID;
-            // Ungerade Spieltage = Steffi, Gerade Spieltage = Ecki
             return (spieltagNr % 2 === 0) ? 'Ecki' : 'Steffi';
         }
-        return 'Steffi'; // Standard-Fallback
+        return 'Steffi';
     }
 
     function aktualisiereAnzeige() {
