@@ -11,7 +11,6 @@
         label { font-weight: bold; display: block; margin-top: 12px; font-size: 0.9em; }
         input, select { width: 100%; padding: 10px; margin-top: 5px; border: 1px solid #ccc; border-radius: 8px; box-sizing: border-box; font-size: 1em; background: white; }
         
-        /* Hervorhebung für die Tipp-Eingabefelder (größer & fett) */
         .tipp-input {
             font-size: 1.4em !important;
             font-weight: bold !important;
@@ -92,12 +91,16 @@
 
     let aktuelleSpieleDaten = [];
     let aktuelleTabelle = {};
-    let manuellerOverride = localStorage.getItem('manuellerOverride') || null;
+    let manuellerOverride = null;
 
     document.addEventListener("DOMContentLoaded", function() {
-        document.getElementById('pottBisher').value = localStorage.getItem('pottBisherStand') || '0';
-        document.getElementById('meinTipp').value = localStorage.getItem('meinTippStand') || '';
-        document.getElementById('kumpelTipp').value = localStorage.getItem('kumpelTippStand') || '';
+        // Werte beim Start aus der URL auslesen
+        const params = new URLSearchParams(window.location.search);
+        
+        document.getElementById('pottBisher').value = params.get('pott') || '0';
+        document.getElementById('meinTipp').value = params.get('ecki') || '';
+        document.getElementById('kumpelTipp').value = params.get('steffi') || '';
+        manuellerOverride = params.get('override') || null;
 
         berechnePott();
         ladeTabellenDaten();
@@ -131,10 +134,21 @@
         let pottVal = document.getElementById('pottBisher').value.replace(/[^0-9]/g, '');
         document.getElementById('pottBisher').value = pottVal;
 
-        localStorage.setItem('pottBisherStand', pottVal);
-        localStorage.setItem('spielIndexStand', document.getElementById('spielDropdown').value);
-        localStorage.setItem('meinTippStand', document.getElementById('meinTipp').value);
-        localStorage.setItem('kumpelTippStand', document.getElementById('kumpelTipp').value);
+        const spielIndex = document.getElementById('spielDropdown').value;
+        const meinTipp = document.getElementById('meinTipp').value;
+        const kumpelTipp = document.getElementById('kumpelTipp').value;
+
+        // Daten direkt in die URL schreiben (ohne die Seite neu zu laden)
+        const params = new URLSearchParams(window.location.search);
+        if (pottVal) params.set('pott', pottVal); else params.delete('pott');
+        if (spielIndex !== "") params.set('spiel', spielIndex); else params.delete('spiel');
+        if (meinTipp) params.set('ecki', meinTipp); else params.delete('ecki');
+        if (kumpelTipp) params.set('steffi', kumpelTipp); else params.delete('steffi');
+        if (manuellerOverride) params.set('override', manuellerOverride); else params.delete('override');
+
+        const neuerPfad = window.location.pathname + '?' + params.toString();
+        window.history.replaceState({}, '', neuerPfad);
+
         berechnePott();
     }
 
@@ -170,7 +184,7 @@
         const match = (selectedIndex !== "" && aktuelleSpieleDaten[selectedIndex]) ? aktuelleSpieleDaten[selectedIndex] : null;
         const aktuell = ermittleWerIstDran(match);
         manuellerOverride = (aktuell === 'Steffi') ? 'Ecki' : 'Steffi';
-        localStorage.setItem('manuellerOverride', manuellerOverride);
+        speichereDaten();
         aktualisiereAnzeige();
     }
 
@@ -189,8 +203,9 @@
                     dropdown.appendChild(option);
                 });
 
-                const gemerktesSpiel = localStorage.getItem('spielIndexStand');
-                if (gemerktesSpiel !== null && gemerktesSpiel !== "") {
+                const params = new URLSearchParams(window.location.search);
+                const gemerktesSpiel = params.get('spiel');
+                if (gemerktesSpiel !== null && gemerktesSpiel !== "" && dropdown.querySelector(`option[value="${gemerktesSpiel}"]`)) {
                     dropdown.value = gemerktesSpiel;
                     zeigeSpieltagDatum();
                 } else {
@@ -295,7 +310,7 @@
 
     function generiereAufforderung() {
         const pott = document.getElementById('pottNeu').innerText;
-        const text = `Hallo liebe Steffi,\nwieder steht unser Tippspiel an ⚽, suchst du bitte ein Spiel aus? Im Pott sind ${pott} Euro 💰.\n\nLiebe Grüße\nEcki 🍀`;
+        const text = `Hallo liebe Steffi,\nwieder steht unser Tippspiel an ⚽, suchst du bitte ein Spiel aus? Im Pott sind ${pott} Euro 💰.\n\nLiebe Grüße und ein schönes Wochenende\nEcki 🍀`;
         zeigeOutput(text);
     }
 
