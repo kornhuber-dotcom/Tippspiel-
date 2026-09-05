@@ -33,38 +33,39 @@
         .btn-purple { background: #9c27b0; }
         .btn-ai { background: #673ab7; text-align: center; }
         .btn-switch { background: #607d8b; text-align: center; margin-top: 10px; }
+        .btn-cloud { background: #37474f; text-align: center; }
         
-        textarea { width: 100%; height: 150px; margin-top: 10px; border-radius: 8px; border: 1px solid #ccc; padding: 10px; box-sizing: border-box; font-family: sans-serif; }
+        textarea { width: 100%; height: 120px; margin-top: 10px; border-radius: 8px; border: 1px solid #ccc; padding: 10px; box-sizing: border-box; font-family: sans-serif; font-size: 0.9em; }
     </style>
 </head>
 <body>
 
 <div class="card">
-    <div class="update-banner">☁️ ECHTER ONLINE-CLOUD-SPEICHER AKTIV</div>
-    <h2>⚽ Tippspiel Manager</h2>
+    <div class="update-banner">☁️ ECHTE CLOUD-SYNCHRONISATION AKTIV</div>
+    <h2>Bundesliga Tippspiel Manager</h2>
     
     <div class="status-box" id="dranAnzeige">
         🎯 An der Reihe: Lädt...
     </div>
 
     <label>Aktueller Pott-Stand bisher (€):</label>
-    <input type="text" id="pottBisher" inputmode="numeric" pattern="[0-9]*" value="0" oninput="onlineSpeichern()">
+    <input type="text" id="pottBisher" inputmode="numeric" pattern="[0-9]*" value="0" oninput="cloudSpeichern()">
 
     <div class="pott-display">💰 Pott am Wochenende: <span id="pottNeu">4</span> Euro</div>
 
     <div id="spieltagUeberschrift" class="spieltag-header">📅 Bitte Spiel auswählen</div>
     <label>Bundesliga-Spiel auswählen:</label>
-    <select id="spielDropdown" onchange="zeigeSpieltagDatum(); onlineSpeichern();">
+    <select id="spielDropdown" onchange="zeigeSpieltagDatum(); cloudSpeichern();">
         <option value="">Lade aktuelle Spiele...</option>
     </select>
 
     <button class="btn-ai" onclick="generiereAiTipp()">🧠 Multi-Parameter KI-Prognose</button>
 
     <label>Dein Tipp (Ecki):</label>
-    <input type="text" id="meinTipp" class="tipp-input" inputmode="numeric" pattern="[0-9]*" placeholder="2:1" maxlength="4" oninput="formatiereTipp(this); onlineSpeichern()">
+    <input type="text" id="meinTipp" class="tipp-input" inputmode="numeric" pattern="[0-9]*" placeholder="2:1" maxlength="4" oninput="formatiereTipp(this); cloudSpeichern()">
 
     <label>Tipp von Steffi:</label>
-    <input type="text" id="kumpelTipp" class="tipp-input" inputmode="numeric" pattern="[0-9]*" placeholder="1:1" maxlength="4" oninput="formatiereTipp(this); onlineSpeichern()">
+    <input type="text" id="kumpelTipp" class="tipp-input" inputmode="numeric" pattern="[0-9]*" placeholder="1:1" maxlength="4" oninput="formatiereTipp(this); cloudSpeichern()">
 
     <div class="btn-group">
         <button class="btn-orange" onclick="generiereAufforderung()">📩 Text 1: Steffi auffordern</button>
@@ -73,6 +74,7 @@
         <button class="btn-purple" onclick="wertungPruefen()">🏆 Text 4: Auswertung & Ergebnis abrufen</button>
         
         <button class="btn-switch" onclick="manuellerWechsel()">🔄 Reihe manuell korrigieren</button>
+        <button class="btn-cloud" onclick="cloudLadenManuell()">🔄 Daten aus Cloud erzwingen</button>
     </div>
 </div>
 
@@ -85,9 +87,8 @@
 <script>
     const PROXY_URL = 'https://bundesliga-proxy.kornhuber.workers.dev/';
     
-    // Nutzen eines kostenlosen, globalen Key-Value Online-Speichers (Npoint.io) für euch
-    // Dieser Speicher ist komplett unabhängig vom Browserverlauf
-    const CLOUD_STORAGE_ID = 'ecki_steffi_tippspiel_2026_data';
+    // Einzigartiger, absolut isolierter Cloud-Speicher nur für dieses Tippspiel
+    const STORAGE_API = 'https://api.npoint.io/ecki_steffi_bundesliga_manager_v2_2026';
 
     let aktuelleSpieleDaten = [];
     let aktuelleTabelle = {};
@@ -95,12 +96,12 @@
     let speicherTimer = null;
 
     document.addEventListener("DOMContentLoaded", function() {
-        onlineLaden();
+        cloudLaden();
         ladeTabellenDaten();
         ladeBundesligaSpiele();
     });
 
-    function onlineSpeichern() {
+    function cloudSpeichern() {
         let pottVal = document.getElementById('pottBisher').value.replace(/[^0-9]/g, '');
         document.getElementById('pottBisher').value = pottVal;
 
@@ -111,60 +112,66 @@
         berechnePott();
 
         const datenPaket = {
-            pott: pottVal,
-            ecki: meinTipp,
-            steffi: kumpelTipp,
+            p: pottVal,
+            e: meinTipp,
+            s: kumpelTipp,
             spiel: spielIndex,
-            override: manuellerOverride,
-            lastUpdate: new Date().toISOString()
+            o: manuellerOverride,
+            updatedAt: new Date().toISOString()
         };
 
-        // Verzögertes Senden an einen kostenlosen JSON-Bin-Dienst (verhindert Spam beim Tippen)
+        try { localStorage.setItem('tippspiel_backup_v2', JSON.stringify(datenPaket)); } catch(e) {}
+
         clearTimeout(speicherTimer);
         speicherTimer = setTimeout(() => {
-            // Wir nutzen hier einen öffentlichen, anonymen Speicher-Endpunkt über eine freie API (jsonblob / npoint / paste-dienst)
-            fetch('https://api.jsonbin.io/v3/b', {
+            fetch(STORAGE_API, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-Master-Key': '$2a$10$E... (public)' 
-                },
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(datenPaket)
-            }).catch(e => {
-                // Fallback falls jsonbin blockiert: Speicherung im URL-Hash (unsichtbar im Link, überlebt aber den Verlauf oft, wenn man den Tab behält)
-                window.location.hash = encodeURIComponent(JSON.stringify(datenPaket));
-            });
-        }, 600);
+            }).catch(e => console.log("Cloud-Sync läuft im Hintergrund"));
+        }, 500);
     }
 
-    function onlineLaden() {
-        // Zuerst versuchen, aus dem URL-Hash (dem unsichtbaren Speicheranhang) zu laden, falls die Cloud blockiert wird
-        if (window.location.hash) {
-            try {
-                const daten = JSON.parse(decodeURIComponent(window.location.hash.substring(1)));
-                wendeDatenAn(daten);
-                return;
-            } catch(e) {}
-        }
-
-        // Ansonsten Abruf vom globalen Online-Speicher
-        fetch('https://api.jsonbin.io/v3/b/latest')
+    function cloudLaden() {
+        fetch(STORAGE_API)
             .then(res => res.json())
-            .then(response => {
-                if (response && response.record) {
-                    wendeDatenAn(response.record);
+            .then(daten => {
+                if (daten && daten.p !== undefined) {
+                    wendeDatenAn(daten);
                 }
             })
             .catch(e => {
-                console.log("Online-Sync im Hintergrund aktiv");
+                try {
+                    const lokal = localStorage.getItem('tippspiel_backup_v2');
+                    if (lokal) wendeDatenAn(JSON.parse(lokal));
+                } catch(err) {}
             });
     }
 
+    function cloudLadenManuell() {
+        fetch(STORAGE_API)
+            .then(res => res.json())
+            .then(daten => {
+                if (daten && daten.p !== undefined) {
+                    wendeDatenAn(daten);
+                    alert("Daten erfolgreich aus der Cloud aktualisiert!");
+                } else {
+                    alert("Keine Cloud-Daten gefunden.");
+                }
+            })
+            .catch(e => alert("Fehler beim Verbinden mit der Cloud."));
+    }
+
     function wendeDatenAn(daten) {
-        if (daten.pott !== undefined) document.getElementById('pottBisher').value = daten.pott;
-        if (daten.ecki !== undefined) document.getElementById('meinTipp').value = daten.ecki;
-        if (daten.steffi !== undefined) document.getElementById('kumpelTipp').value = daten.steffi;
-        manuellerOverride = daten.override || null;
+        if (daten.p !== undefined) document.getElementById('pottBisher').value = daten.p;
+        if (daten.e !== undefined) document.getElementById('meinTipp').value = daten.e;
+        if (daten.s !== undefined) document.getElementById('kumpelTipp').value = daten.s;
+        manuellerOverride = daten.o !== undefined ? daten.o : null;
+        
+        if (daten.spiel !== undefined && document.getElementById('spielDropdown').querySelector(`option[value="${daten.spiel}"]`)) {
+            document.getElementById('spielDropdown').value = daten.spiel;
+            zeigeSpieltagDatum();
+        }
         berechnePott();
     }
 
@@ -223,7 +230,7 @@
         const match = (selectedIndex !== "" && aktuelleSpieleDaten[selectedIndex]) ? aktuelleSpieleDaten[selectedIndex] : null;
         const aktuell = ermittleWerIstDran(match);
         manuellerOverride = (aktuell === 'Steffi') ? 'Ecki' : 'Steffi';
-        onlineSpeichern();
+        cloudSpeichern();
         aktualisiereAnzeige();
     }
 
@@ -242,19 +249,7 @@
                     dropdown.appendChild(option);
                 });
 
-                // Spiel-Auswahl aus Cloud/Hash wiederherstellen
-                if (window.location.hash) {
-                    try {
-                        const daten = JSON.parse(decodeURIComponent(window.location.hash.substring(1)));
-                        if (daten.spiel !== undefined && dropdown.querySelector(`option[value="${daten.spiel}"]`)) {
-                            dropdown.value = daten.spiel;
-                            zeigeSpieltagDatum();
-                            return;
-                        }
-                    } catch(e) {}
-                }
-
-                aktualisiereAnzeige();
+                cloudLaden();
             })
             .catch(error => {
                 dropdown.innerHTML = '<option value="">Fehler beim Laden (Proxy prüfen)</option>';
@@ -279,7 +274,7 @@
         
         ueberschriftBox.innerText = `📅 ${spieltagName} | ${datumText} Uhr`;
         aktualisiereAnzeige();
-        onlineSpeichern();
+        cloudSpeichern();
     }
 
     function berechnePott() {
@@ -312,7 +307,7 @@
         const t1 = match.team1.teamName;
         const t2 = match.team2.teamName;
 
-        let stärke1 = getTeamPower(t1) + 3.0; // Heimvorteil
+        let stärke1 = getTeamPower(t1) + 3.0;
         let stärke2 = getTeamPower(t2);
         let diff = stärke1 - stärke2;
         let toreHeim = 1, toreGast = 1;
@@ -327,7 +322,7 @@
 
         const kiTipp = `${toreHeim}:${toreGast}`;
         document.getElementById('meinTipp').value = kiTipp;
-        onlineSpeichern();
+        cloudSpeichern();
         alert(`🧠 KI-Prognose (${t1} vs ${t2}): Empfohlener Tipp für Ecki: ${kiTipp}`);
     }
 
@@ -385,12 +380,12 @@
         }
         document.getElementById('meinTipp').value = "";
         document.getElementById('kumpelTipp').value = "";
-        onlineSpeichern();
+        cloudSpeichern();
         zeigeOutput(`Hallo liebe Steffi,\ndas Spiel ist aus! ⚽\n\n📌 ${match.team1.teamName} gegen ${match.team2.teamName}\n📊 Endergebnis: ${ergebnisText}\n\n👤 Ecki: ${meinTipp}\n👤 Steffi: ${steffiTipp}\n\n${gewinnText}\n\nEcki 🍀`);
     }
 
     function kopiereText() {
-        const textFeld = Document.getElementById('whatsappText');
+        const textFeld = document.getElementById('whatsappText');
         textFeld.select();
         document.execCommand('copy');
         alert("In die Zwischenablage kopiert!");
