@@ -483,20 +483,23 @@
         if (selectedIndex === "") { alert("Bitte wähle zuerst das Spiel aus!"); return; }
         const match = aktuelleSpieleDaten[selectedIndex];
         
-        // Direkte Prüfung auf vorhandene Ergebnisse statt starrer API-Sperre
-        if (!match.matchResults || match.matchResults.length === 0) { 
-            alert("Noch kein Endergebnis in der API hinterlegt. (Bitte einen Moment gedulden, bis der Spielstand eingetragen wurde)"); 
-            return; 
+        let ergebnisText = "";
+
+        // Prüfen, ob die API ein Endergebnis hat
+        if (match.matchResults && match.matchResults.length > 0) {
+            const endResult = match.matchResults.find(r => r.resultName === "Endergebnis") || match.matchResults[match.matchResults.length - 1];
+            if (endResult && endResult.pointsTeam1 !== undefined && endResult.pointsTeam2 !== undefined) {
+                ergebnisText = `${endResult.pointsTeam1}:${endResult.pointsTeam2}`;
+            }
         }
 
-        const endResult = match.matchResults.find(r => r.resultName === "Endergebnis") || match.matchResults[match.matchResults.length - 1];
-        
-        if (!endResult || endResult.pointsTeam1 === undefined || endResult.pointsTeam2 === undefined) {
-            alert("Das Endergebnis liegt noch nicht vollständig vor.");
-            return;
+        // Falls API noch leer ist: Flexibler Notfall-Dialog zum manuellen Eintragen
+        if (!ergebnisText) {
+            let manuellesErgebnis = prompt(`Die API hat für ${match.team1.teamName} vs ${match.team2.teamName} noch kein Ergebnis.\n\nBitte gib das offizielle Endergebnis ein (z.B. 2:1):`);
+            if (!manuellesErgebnis) return;
+            ergebnisText = manuellesErgebnis.trim();
         }
 
-        const ergebnisText = `${endResult.pointsTeam1}:${endResult.pointsTeam2}`;
         const meinTipp = document.getElementById('meinTipp').value.trim();
         const steffiTipp = document.getElementById('kumpelTipp').value.trim();
         const pottNeu = parseFloat(document.getElementById('pottNeu').innerText);
