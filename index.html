@@ -483,13 +483,19 @@
         if (selectedIndex === "") { alert("Bitte wähle zuerst das Spiel aus!"); return; }
         const match = aktuelleSpieleDaten[selectedIndex];
         
-        // KORRIGIERT: matchIsFinished (mit großem I und F wie in der API)
-        if (!match.matchIsFinished) { 
-            alert("Das Spiel ist laut API noch nicht beendet! (Bitte kurz warten, bis die Offiziellen das Ergebnis eintragen)"); 
+        // Direkte Prüfung auf vorhandene Ergebnisse statt starrer API-Sperre
+        if (!match.matchResults || match.matchResults.length === 0) { 
+            alert("Noch kein Endergebnis in der API hinterlegt. (Bitte einen Moment gedulden, bis der Spielstand eingetragen wurde)"); 
             return; 
         }
 
         const endResult = match.matchResults.find(r => r.resultName === "Endergebnis") || match.matchResults[match.matchResults.length - 1];
+        
+        if (!endResult || endResult.pointsTeam1 === undefined || endResult.pointsTeam2 === undefined) {
+            alert("Das Endergebnis liegt noch nicht vollständig vor.");
+            return;
+        }
+
         const ergebnisText = `${endResult.pointsTeam1}:${endResult.pointsTeam2}`;
         const meinTipp = document.getElementById('meinTipp').value.trim();
         const steffiTipp = document.getElementById('kumpelTipp').value.trim();
