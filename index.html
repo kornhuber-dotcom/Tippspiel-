@@ -38,6 +38,7 @@
         .btn-ai:hover { background: #512da8; }
         .btn-switch { background: #607d8b; text-align: center; margin-top: 10px; }
         .btn-switch:hover { background: #455a64; }
+        .btn-backup { background: #37474f; text-align: center; margin-top: 5px; font-size: 0.85em; padding: 8px; }
         
         textarea { width: 100%; height: 160px; margin-top: 10px; border-radius: 8px; border: 1px solid #ccc; padding: 10px; box-sizing: border-box; font-family: sans-serif; }
     </style>
@@ -77,11 +78,12 @@
         <button class="btn-purple" onclick="wertungPruefen()">🏆 Text 4: Auswertung & Ergebnis abrufen</button>
         
         <button class="btn-switch" onclick="manuellerWechsel()">🔄 Reihe manuell korrigieren</button>
+        <button class="btn-backup" onclick="exportiereBackup()">💾 Stand als Text kopieren (Backup)</button>
     </div>
 </div>
 
 <div class="card" id="outputCard" style="display: none;">
-    <h3>Generierter WhatsApp-Text:</h3>
+    <h3>Generierter WhatsApp-Text / Backup:</h3>
     <textarea id="whatsappText" readonly></textarea>
     <button onclick="kopiereText()" style="background: #333; text-align: center;">📋 In Zwischenablage kopieren</button>
 </div>
@@ -96,10 +98,23 @@
     document.addEventListener("DOMContentLoaded", function() {
         const params = new URLSearchParams(window.location.search);
         
-        document.getElementById('pottBisher').value = params.get('pott') || '0';
-        document.getElementById('meinTipp').value = params.get('ecki') || '';
-        document.getElementById('kumpelTipp').value = params.get('steffi') || '';
+        // Priorität 1: URL-Parameter auslesen
+        let pottVal = params.get('pott');
+        let meinTippVal = params.get('ecki');
+        let steffiTippVal = params.get('steffi');
+        let spielVal = params.get('spiel');
         manuellerOverride = params.get('override') || null;
+
+        // Priorität 2: Falls URL leer ist, aus dem lokalen Browser-Speicher (localStorage) holen als Fallback
+        if (pottVal === null) pottVal = localStorage.getItem('tipp_pott') || '0';
+        if (meinTippVal === null) meinTippVal = localStorage.getItem('tipp_ecki') || '';
+        if (steffiTippVal === null) steffiTippVal = localStorage.getItem('tipp_steffi') || '';
+        if (spielVal === null) spielVal = localStorage.getItem('tipp_spiel') || '';
+        if (!manuellerOverride) manuellerOverride = localStorage.getItem('tipp_override') || null;
+
+        document.getElementById('pottBisher').value = pottVal;
+        document.getElementById('meinTipp').value = meinTippVal;
+        document.getElementById('kumpelTipp').value = steffiTippVal;
 
         berechnePott();
         ladeTabellenDaten();
@@ -137,14 +152,23 @@
         const meinTipp = document.getElementById('meinTipp').value;
         const kumpelTipp = document.getElementById('kumpelTipp').value;
 
-        const params = new URLSearchParams(window.location.search);
-        if (pottVal) params.set('pott', pottVal); else params.delete('pott');
-        if (spielIndex !== "") params.set('spiel', spielIndex); else params.delete('spiel');
-        if (meinTipp) params.set('ecki', meinTipp); else params.delete('ecki');
-        if (kumpelTipp) params.set('steffi', kumpelTipp); else params.delete('steffi');
-        if (manuellerOverride) params.set('override', manuellerOverride); else params.delete('override');
+        // 1. Speichern im LocalStorage (normaler Browser-Speicher)
+        localStorage.setItem('tipp_pott', pottVal);
+        localStorage.setItem('tipp_ecki', meinTipp);
+        localStorage.setItem('tipp_steffi', kumpelTipp);
+        localStorage.setItem('tipp_spiel', spielIndex);
+        if (manuellerOverride) localStorage.setItem('tipp_override', manuellerOverride);
+        else localStorage.removeItem('tipp_override');
 
-        const neuerPfad = window.location.pathname + '?' + params.toString();
+        // 2. Speichern in der URL (als Backup)
+        const params = new URLSearchParams();
+        if (pottVal && pottVal !== '0') params.set('pott', pottVal);
+        if (spielIndex !== "") params.set('spiel', spielIndex);
+        if (meinTipp) params.set('ecki', meinTipp);
+        if (kumpelTipp) params.set('steffi', kumpelTipp);
+        if (manuellerOverride) params.set('override', manuellerOverride);
+
+        const neuerPfad = window.location.pathname + (params.toString() ? '?' + params.toString() : '');
         window.history.replaceState({}, '', neuerPfad);
 
         berechnePott();
@@ -201,10 +225,9 @@
                     dropdown.appendChild(option);
                 });
 
-                const params = new URLSearchParams(window.location.search);
-                const gemerktesSpiel = params.get('spiel');
-                if (gemerktesSpiel !== null && gemerktesSpiel !== "" && dropdown.querySelector(`option[value="${gemerktesSpiel}"]`)) {
-                    dropdown.value = gemerktesSpiel;
+                const gespeichertesSpiel = localStorage.getItem('tipp_spiel') || new URLSearchParams(window.location.search).get('spiel');
+                if (gespeichertesSpiel !== null && gespeichertesSpiel !== "" && dropdown.querySelector(`option[value="${gespeichertesSpiel}"]`)) {
+                    dropdown.value = gespeichertesSpiel;
                     zeigeSpieltagDatum();
                 } else {
                     aktualisiereAnzeige();
@@ -278,21 +301,13 @@
         let toreHeim = 1;
         let toreGast = 1;
 
-        if (diff > 8) {
-            toreHeim = 3; toreGast = 0;
-        } else if (diff > 4) {
-            toreHeim = 2; toreGast = 0;
-        } else if (diff > 1.5) {
-            toreHeim = 2; toreGast = 1;
-        } else if (diff < -8) {
-            toreHeim = 0; toreGast = 3;
-        } else if (diff < -4) {
-            toreHeim = 0; toreGast = 2;
-        } else if (diff < -1.5) {
-            toreHeim = 1; toreGast = 2;
-        } else {
-            toreHeim = 1; toreGast = 1;
-        }
+        if (diff > 8) { toreHeim = 3; toreGast = 0; }
+        else if (diff > 4) { toreHeim = 2; toreGast = 0; }
+        else if (diff > 1.5) { toreHeim = 2; toreGast = 1; }
+        else if (diff < -8) { toreHeim = 0; toreGast = 3; }
+        else if (diff < -4) { toreHeim = 0; toreGast = 2; }
+        else if (diff < -1.5) { toreHeim = 1; toreGast = 2; }
+        else { toreHeim = 1; toreGast = 1; }
 
         const kiTipp = `${toreHeim}:${toreGast}`;
         document.getElementById('meinTipp').value = kiTipp;
@@ -345,7 +360,7 @@
     }
 
     function wertungPruefen() {
-        const selectedIndex = document.getElementById('spielDropdown').value;
+        const selectedIndex = document.getElementById('spielDropdown' ).value;
         if (selectedIndex === "") { alert("Bitte wähle zuerst das Spiel aus, das ausgewertet werden soll!"); return; }
 
         const match = aktuelleSpieleDaten[selectedIndex];
@@ -368,7 +383,7 @@
             document.getElementById('pottBisher').value = 0;
         } else if (ergebnisText === meinTipp) {
             gewinnText = `🎉 Mein Volltreffer! Ich gewinne den Pott von ${pottNeu} Euro. 🏆`;
-            document.getElementById('pottBisher').value = 0;
+            document.getElementById('pottBisher'].value = 0;
         } else {
             gewinnText = `Niemand hat richtig getippt. 🙁 Der Pott bleibt stehen und wächst weiter! 💰`;
             document.getElementById('pottBisher').value = pottNeu;
@@ -382,11 +397,21 @@
         zeigeOutput(whatsappAuswertung);
     }
 
+    function exportiereBackup() {
+        const pott = document.getElementById('pottBisher').value || '0';
+        const ecki = document.getElementById('meinTipp').value || '-';
+        const steffi = document.getElementById('kumpelTipp').value || '-';
+        
+        const backupText = `Tippspiel-Backup:\nPott bisher: ${pott}\nEcki Tipp: ${ecki}\nSteffi Tipp: ${steffi}`;
+        zeigeOutput(backupText);
+        alert("Backup generiert! Du kannst den Text unten in WhatsApp oder in deine Notizen kopieren, falls dein Browser beim Aufräumen alles löscht.");
+    }
+
     function kopiereText() {
         const textFeld = document.getElementById('whatsappText');
         textFeld.select();
         document.execCommand('copy');
-        alert("Text kopiert! Du kannst ihn jetzt bei WhatsApp einfügen.");
+        alert("Text kopiert!");
     }
 </script>
 
