@@ -94,7 +94,6 @@
     let manuellerOverride = null;
 
     document.addEventListener("DOMContentLoaded", function() {
-        // Werte beim Start aus der URL auslesen
         const params = new URLSearchParams(window.location.search);
         
         document.getElementById('pottBisher').value = params.get('pott') || '0';
@@ -138,7 +137,6 @@
         const meinTipp = document.getElementById('meinTipp').value;
         const kumpelTipp = document.getElementById('kumpelTipp').value;
 
-        // Daten direkt in die URL schreiben (ohne die Seite neu zu laden)
         const params = new URLSearchParams(window.location.search);
         if (pottVal) params.set('pott', pottVal); else params.delete('pott');
         if (spielIndex !== "") params.set('spiel', spielIndex); else params.delete('spiel');
@@ -249,9 +247,9 @@
         
         if (name.includes('bayern') || name.includes('dortmund')) basePower = 25;
         else if (name.includes('leverkusen') || name.includes('leipzig') || name.includes('frankfurt')) basePower = 22;
-        else if (name.includes('stuttgart') || name.includes('freiburg') || name.includes('wolfsburg') || name.includes('gladbach')) basePower = 17;
+        else if (name.includes('stuttgart') || name.includes('freiburg') || name.includes('gladbach')) basePower = 17;
         else if (name.includes('union') || name.includes('mainz') || name.includes('bremen') || name.includes('hoffenheim') || name.includes('augsburg')) basePower = 14;
-        else if (name.includes('heidenheim') || name.includes('st. pauli') || name.includes('kiel') || name.includes('bochum') || name.includes('schalke')) basePower = 11;
+        else if (name.includes('elversberg') || name.includes('paderborn') || name.includes('schalke') || name.includes('bochum') || name.includes('kiel')) basePower = 11;
         
         if (aktuelleTabelle[teamName]) {
             let t = aktuelleTabelle[teamName];
@@ -310,7 +308,7 @@
 
     function generiereAufforderung() {
         const pott = document.getElementById('pottNeu').innerText;
-        const text = `Hallo liebe Steffi,\nwieder steht unser Tippspiel an ⚽, suchst du bitte ein Spiel aus? Im Pott sind ${pott} Euro 💰.\n\nLiebe Grüße und ein schönes Wochenende\nEcki 🍀`;
+        const text = `Hallo liebe Steffi,\nwieder steht unser Tippspiel an ⚽, suchst du bitte ein Spiel aus? Im Pott sind ${pott} Euro 💰.\n\nLiebe Grüße\nEcki 🍀`;
         zeigeOutput(text);
     }
 
