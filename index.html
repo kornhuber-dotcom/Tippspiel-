@@ -102,15 +102,16 @@
     let manuellerOverride = null;
     let speicherTimer = null;
     
-    // Statistik-Variablen (Pott rollt hier direkt seit 4 Wochen)
+    // Statistik-Variablen fix auf 4 Wochen gesetzt
     let statEckiSiege = 0;
     let statSteffiSiege = 0;
     let statPottWochen = 4;
 
     document.addEventListener("DOMContentLoaded", function() {
-        cloudLaden();
+        // Wir laden erst lokal/Cloud, erzwingen aber direkt die 4 Wochen, falls die Cloud-Daten älter sind
         ladeTabellenDaten();
         ladeBundesligaSpiele();
+        cloudLaden();
     });
 
     function datenGeändert() {
@@ -174,6 +175,9 @@
             const daten = data.record;
             if (daten && daten.p !== undefined) {
                 wendeDatenAn(daten);
+                // Direkt einmal in die Cloud zurückschreiben, damit die 4 Wochen dort festhängen
+                statPottWochen = 4;
+                cloudSpeichern();
             }
         })
         .catch(e => {
@@ -218,7 +222,9 @@
         
         statEckiSiege = daten.se !== undefined ? Number(daten.se) : 0;
         statSteffiSiege = daten.ss !== undefined ? Number(daten.ss) : 0;
-        statPottWochen = daten.sw !== undefined ? Number(daten.sw) : 4;
+        // Wir erzwingen hier direkt die 4 Wochen, falls der Cloud-Wert kleiner war
+        statPottWochen = 4; 
+        
         aktualisiereStatistikAnzeige();
 
         if (daten.spiel !== undefined && document.getElementById('spielDropdown').querySelector(`option[value="${daten.spiel}"]`)) {
@@ -307,7 +313,6 @@
                     option.value = index;
                     dropdown.appendChild(option);
                 });
-                cloudLaden();
             })
             .catch(error => {
                 dropdown.innerHTML = '<option value="">Fehler beim Laden (Proxy prüfen)</option>';
