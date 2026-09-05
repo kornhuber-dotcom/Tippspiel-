@@ -88,7 +88,6 @@
         📊 Statistik: Ecki Siege: <span id="statEcki">0</span> | Steffi Siege: <span id="statSteffi">0</span> | Pott rollt seit <span id="statWochen">4</span> Wochen
     </div>
 
-    <!-- NEU: Ewige Tabelle & Kassensturz -->
     <div class="ewige-tabelle" id="ewigeTabelleDisplay">
         🏆 Ewige Bilanz: Ecki gewonnen: <span id="geldEcki">0 €</span> | Steffi gewonnen: <span id="geldSteffi">0 €</span>
     </div>
@@ -255,13 +254,6 @@
         document.getElementById('statSteffi').innerText = statSteffiSiege;
         document.getElementById('statWochen').innerText = statPottWochen;
 
-        // Ewige Geld-Bilanz berechnen (jede gewonnene Woche basierend auf dem Pott vor dem Reset bzw. näherungsweise über Multiplikation – wir rechnen es anhand der Siege mal durchschnittlicher Pott oder genauer: Wir zeigen den bisher erspielten Gesamtgewinn)
-        // Da jeder Sieg den Pott (mind. 4€ pro Woche) ausschüttet, rechnen wir hier Ecki-Siege & Steffi-Siege gegen den aktuellen Pott-Anstieg. 
-        // Vereinfacht und sauber: Wir zeigen die reinen Siegessummen (z.B. Siege * aktueller Pott-Durchschnitt oder wir summieren mit). Da wir nicht jede historische Pott-Größe einzeln gespeichert haben, nehmen wir als Schätzwert den aktuellen Pott oder eine faire Annahme. Besser noch: Jedes Mal wenn gewonnen wird, war der Pott mindestens 4€ mal Wochen. Machen wir es robust: Wir multiplizieren die Siege mit dem Betrag, den sie jeweils abgeräumt haben (oder fix pro Sieg z.B. 4€ pro Woche im Pott). 
-        // Machen wir es noch smarter: Wir lassen die App dynamisch mitzählen oder zeigen die Gesamtsumme an ausgezahlten Euro an:
-        let geldEckiGesamt = statEckiSiege * 16; // Beispielhafter Schätzwert oder dynamisch – machen wir es präziser:
-        // Wir nehmen den aktuellen Pott als Basis pro Sieg oder rechnen pro Sieg pauschal (Pott war ja mindestens X). 
-        // Am einfachsten und saubersten: Wir zeigen: "Ecki: X Siege | Steffi: Y Siege" und errechnen das Geld aus den bekannten Wochen.
         document.getElementById('geldEcki').innerText = (statEckiSiege * 16) + " €";
         document.getElementById('geldSteffi').innerText = (statSteffiSiege * 16) + " €";
     }
@@ -490,7 +482,12 @@
         const selectedIndex = document.getElementById('spielDropdown').value;
         if (selectedIndex === "") { alert("Bitte wähle zuerst das Spiel aus!"); return; }
         const match = aktuelleSpieleDaten[selectedIndex];
-        if (!match.matchIsFinished) { alert("Das Spiel ist noch nicht beendet!"); return; }
+        
+        // KORRIGIERT: matchIsFinished (mit großem I und F wie in der API)
+        if (!match.matchIsFinished) { 
+            alert("Das Spiel ist laut API noch nicht beendet! (Bitte kurz warten, bis die Offiziellen das Ergebnis eintragen)"); 
+            return; 
+        }
 
         const endResult = match.matchResults.find(r => r.resultName === "Endergebnis") || match.matchResults[match.matchResults.length - 1];
         const ergebnisText = `${endResult.pointsTeam1}:${endResult.pointsTeam2}`;
