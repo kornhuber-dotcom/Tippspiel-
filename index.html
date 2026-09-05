@@ -52,9 +52,9 @@
     </div>
 
     <label>Aktueller Pott-Stand bisher (€):</label>
-    <input type="text" id="pottBisher" inputmode="numeric" pattern="[0-9]*" value="0" oninput="datenGeändert()">
+    <input type="text" id="pottBisher" inputmode="numeric" pattern="[0-9]*" value="12" oninput="datenGeändert()">
 
-    <div class="pott-display">💰 Pott am Wochenende: <span id="pottNeu">4</span> Euro</div>
+    <div class="pott-display">💰 Pott am Wochenende: <span id="pottNeu">16</span> Euro</div>
 
     <div id="spieltagUeberschrift" class="spieltag-header">📅 Bitte Spiel auswählen</div>
     <label>Bundesliga-Spiel auswählen:</label>
@@ -71,7 +71,7 @@
     <input type="text" id="kumpelTipp" class="tipp-input" inputmode="numeric" pattern="[0-9]*" placeholder="1:1" maxlength="4" oninput="formatiereTipp(this); datenGeändert()">
 
     <div class="stats-box" id="statsDisplay">
-        📊 Statistik: Ecki Siege: <span id="statEcki">0</span> | Steffi Siege: <span id="statSteffi">0</span> | Pott rollt seit <span id="statWochen">1</span> Wochen
+        📊 Statistik: Ecki Siege: <span id="statEcki">0</span> | Steffi Siege: <span id="statSteffi">0</span> | Pott rollt seit <span id="statWochen">4</span> Wochen
     </div>
 
     <div class="btn-group">
@@ -102,10 +102,10 @@
     let manuellerOverride = null;
     let speicherTimer = null;
     
-    // Statistik-Variablen
+    // Statistik-Variablen (Pott rollt hier direkt seit 4 Wochen)
     let statEckiSiege = 0;
     let statSteffiSiege = 0;
-    let statPottWochen = 1;
+    let statPottWochen = 4;
 
     document.addEventListener("DOMContentLoaded", function() {
         cloudLaden();
@@ -218,7 +218,7 @@
         
         statEckiSiege = daten.se !== undefined ? Number(daten.se) : 0;
         statSteffiSiege = daten.ss !== undefined ? Number(daten.ss) : 0;
-        statPottWochen = daten.sw !== undefined ? Number(daten.sw) : 1;
+        statPottWochen = daten.sw !== undefined ? Number(daten.sw) : 4;
         aktualisiereStatistikAnzeige();
 
         if (daten.spiel !== undefined && document.getElementById('spielDropdown').querySelector(`option[value="${daten.spiel}"]`)) {
@@ -431,16 +431,16 @@
             gewinnText = `🎉 Dein Volltreffer! Du gewinnst den Pott von ${pottNeu} Euro. 🏆`;
             document.getElementById('pottBisher').value = 0;
             statSteffiSiege++;
-            statPottWochen = 1; // Pott wurde gewonnen, startet neu bei 1 Woche
+            statPottWochen = 1; 
         } else if (ergebnisText === meinTipp) {
             gewinnText = `🎉 Mein Volltreffer! Ich gewinne den Pott von ${pottNeu} Euro. 🏆`;
             document.getElementById('pottBisher').value = 0;
             statEckiSiege++;
-            statPottWochen = 1; // Pott wurde gewonnen, startet neu bei 1 Woche
+            statPottWochen = 1; 
         } else {
             gewinnText = `Niemand hat richtig getippt. 🙁 Der Pott bleibt stehen und wächst weiter! 💰`;
             document.getElementById('pottBisher').value = pottNeu;
-            statPottWochen++; // Pott wurde nicht gewonnen, wächst um 1 Woche an
+            statPottWochen++; 
         }
         
         document.getElementById('meinTipp').value = "";
