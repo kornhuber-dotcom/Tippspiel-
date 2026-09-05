@@ -25,6 +25,9 @@
         .spieltag-header { font-size: 1.05em; font-weight: bold; color: #0288d1; margin-bottom: 5px; text-align: center; background: #e1f5fe; padding: 8px; border-radius: 6px; }
         .pott-display { font-size: 1.2em; font-weight: bold; color: #d32f2f; text-align: center; margin: 10px 0; background: #ffebee; padding: 8px; border-radius: 8px; }
         
+        .stats-box { background: #f8f9fa; border: 1px solid #dcedc8; border-radius: 8px; padding: 10px; margin-top: 15px; font-size: 0.9em; color: #33691e; text-align: center; }
+        .stats-box span { font-weight: bold; }
+
         .btn-group { display: flex; flex-direction: column; gap: 8px; margin-top: 15px; }
         button { width: 100%; color: white; border: none; padding: 12px; border-radius: 8px; font-weight: bold; font-size: 0.95em; cursor: pointer; text-align: left; }
         .btn-green { background: #25d366; }
@@ -67,6 +70,10 @@
     <label>Tipp von Steffi:</label>
     <input type="text" id="kumpelTipp" class="tipp-input" inputmode="numeric" pattern="[0-9]*" placeholder="1:1" maxlength="4" oninput="formatiereTipp(this); datenGeändert()">
 
+    <div class="stats-box" id="statsDisplay">
+        📊 Statistik: Ecki Siege: <span id="statEcki">0</span> | Steffi Siege: <span id="statSteffi">0</span> | Pott rollt seit <span id="statWochen">1</span> Wochen
+    </div>
+
     <div class="btn-group">
         <button class="btn-orange" onclick="generiereAufforderung()">📩 Text 1: Steffi auffordern</button>
         <button class="btn-blue" onclick="generiereEigenesSpiel()">🎯 Text 2: Ecki wählt & tippt vor</button>
@@ -94,6 +101,11 @@
     let aktuelleTabelle = {};
     let manuellerOverride = null;
     let speicherTimer = null;
+    
+    // Statistik-Variablen
+    let statEckiSiege = 0;
+    let statSteffiSiege = 0;
+    let statPottWochen = 1;
 
     document.addEventListener("DOMContentLoaded", function() {
         cloudLaden();
@@ -120,7 +132,10 @@
             e: document.getElementById('meinTipp').value,
             s: document.getElementById('kumpelTipp').value,
             spiel: document.getElementById('spielDropdown').value,
-            o: manuellerOverride
+            o: manuellerOverride,
+            se: statEckiSiege,
+            ss: statSteffiSiege,
+            sw: statPottWochen
         };
         try { localStorage.setItem('ecki_tippspiel_sicher', JSON.stringify(paket)); } catch(e) {}
     }
@@ -132,6 +147,9 @@
             s: document.getElementById('kumpelTipp').value,
             spiel: document.getElementById('spielDropdown').value,
             o: manuellerOverride,
+            se: statEckiSiege,
+            ss: statSteffiSiege,
+            sw: statPottWochen,
             updatedAt: new Date().toISOString()
         };
 
@@ -198,11 +216,22 @@
         if (daten.s !== undefined) document.getElementById('kumpelTipp').value = daten.s;
         manuellerOverride = daten.o !== undefined ? daten.o : null;
         
+        statEckiSiege = daten.se !== undefined ? Number(daten.se) : 0;
+        statSteffiSiege = daten.ss !== undefined ? Number(daten.ss) : 0;
+        statPottWochen = daten.sw !== undefined ? Number(daten.sw) : 1;
+        aktualisiereStatistikAnzeige();
+
         if (daten.spiel !== undefined && document.getElementById('spielDropdown').querySelector(`option[value="${daten.spiel}"]`)) {
             document.getElementById('spielDropdown').value = daten.spiel;
             zeigeSpieltagDatum();
         }
         berechnePott();
+    }
+
+    function aktualisiereStatistikAnzeige() {
+        document.getElementById('statEcki').innerText = statEckiSiege;
+        document.getElementById('statSteffi').innerText = statSteffiSiege;
+        document.getElementById('statWochen').innerText = statPottWochen;
     }
 
     function ladeTabellenDaten() {
@@ -401,16 +430,25 @@
         if (ergebnisText === steffiTipp) {
             gewinnText = `🎉 Dein Volltreffer! Du gewinnst den Pott von ${pottNeu} Euro. 🏆`;
             document.getElementById('pottBisher').value = 0;
+            statSteffiSiege++;
+            statPottWochen = 1; // Pott wurde gewonnen, startet neu bei 1 Woche
         } else if (ergebnisText === meinTipp) {
             gewinnText = `🎉 Mein Volltreffer! Ich gewinne den Pott von ${pottNeu} Euro. 🏆`;
             document.getElementById('pottBisher').value = 0;
+            statEckiSiege++;
+            statPottWochen = 1; // Pott wurde gewonnen, startet neu bei 1 Woche
         } else {
             gewinnText = `Niemand hat richtig getippt. 🙁 Der Pott bleibt stehen und wächst weiter! 💰`;
             document.getElementById('pottBisher').value = pottNeu;
+            statPottWochen++; // Pott wurde nicht gewonnen, wächst um 1 Woche an
         }
+        
         document.getElementById('meinTipp').value = "";
         document.getElementById('kumpelTipp').value = "";
+        
+        aktualisiereStatistikAnzeige();
         datenGeändert();
+        
         zeigeOutput(`Hallo liebe Steffi,\ndas Spiel ist aus! ⚽\n\n📌 ${match.team1.teamName} gegen ${match.team2.teamName}\n📊 Endergebnis: ${ergebnisText}\n\n👤 Ecki: ${meinTipp}\n👤 Steffi: ${steffiTipp}\n\n${gewinnText}\n\nEcki 🍀`);
     }
 
