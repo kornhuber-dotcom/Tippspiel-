@@ -11,6 +11,16 @@
         label { font-weight: bold; display: block; margin-top: 12px; font-size: 0.9em; }
         input, select { width: 100%; padding: 10px; margin-top: 5px; border: 1px solid #ccc; border-radius: 8px; box-sizing: border-box; font-size: 1em; background: white; }
         
+        /* Hervorhebung für die Tipp-Eingabefelder (größer & fett) */
+        .tipp-input {
+            font-size: 1.4em !important;
+            font-weight: bold !important;
+            text-align: center;
+            letter-spacing: 2px;
+            color: #075e54;
+            background: #f9f9f9;
+        }
+
         .status-box { background: #e8f5e9; border: 2px solid #25d366; border-radius: 8px; padding: 12px; text-align: center; font-weight: bold; font-size: 1.1em; color: #1b5e20; margin-bottom: 15px; }
         .spieltag-header { font-size: 1.05em; font-weight: bold; color: #0288d1; margin-bottom: 5px; text-align: center; background: #e1f5fe; padding: 8px; border-radius: 6px; }
         .pott-display { font-size: 1.2em; font-weight: bold; color: #d32f2f; text-align: center; margin: 10px 0; background: #ffebee; padding: 8px; border-radius: 8px; }
@@ -56,10 +66,10 @@
     <button class="btn-ai" onclick="generiereAiTipp()">🧠 Multi-Parameter KI-Prognose</button>
 
     <label>Dein Tipp (Ecki):</label>
-    <input type="text" id="meinTipp" inputmode="numeric" pattern="[0-9]*" placeholder="z. B. 2:1" maxlength="4" oninput="formatiereTipp(this); speichereDaten()">
+    <input type="text" id="meinTipp" class="tipp-input" inputmode="numeric" pattern="[0-9]*" placeholder="2:1" maxlength="4" oninput="formatiereTipp(this); speichereDaten()">
 
     <label>Tipp von Steffi:</label>
-    <input type="text" id="kumpelTipp" inputmode="numeric" pattern="[0-9]*" placeholder="z. B. 1:1" maxlength="4" oninput="formatiereTipp(this); speichereDaten()">
+    <input type="text" id="kumpelTipp" class="tipp-input" inputmode="numeric" pattern="[0-9]*" placeholder="1:1" maxlength="4" oninput="formatiereTipp(this); speichereDaten()">
 
     <div class="btn-group">
         <button class="btn-orange" onclick="generiereAufforderung()">📩 Text 1: Steffi auffordern</button>
@@ -78,7 +88,6 @@
 </div>
 
 <script>
-    // Dein eigener Cloudflare-Worker als Proxy gegen CORS-Probleme
     const PROXY_URL = 'https://bundesliga-proxy.kornhuber.workers.dev/';
 
     let aktuelleSpieleDaten = [];
