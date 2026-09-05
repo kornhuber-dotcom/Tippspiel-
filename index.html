@@ -29,6 +29,9 @@
         .topspiel-title { font-weight: bold; color: #ff8f00; font-size: 0.95em; margin-bottom: 5px; }
         .topspiel-content { font-size: 1.05em; font-weight: bold; color: #333; margin-bottom: 8px; }
 
+        .manuell-box { background: #fff3e0; border: 2px solid #ff9800; border-radius: 8px; padding: 12px; margin-top: 15px; text-align: center; }
+        .manuell-title { font-weight: bold; color: #e65100; font-size: 0.9em; margin-bottom: 5px; }
+
         .stats-box { background: #f8f9fa; border: 1px solid #dcedc8; border-radius: 8px; padding: 10px; margin-top: 15px; font-size: 0.9em; color: #33691e; text-align: center; }
         .stats-box span { font-weight: bold; }
 
@@ -83,6 +86,11 @@
 
     <label>Tipp von Steffi:</label>
     <input type="text" id="kumpelTipp" class="tipp-input" inputmode="numeric" pattern="[0-9]*" placeholder="1:1" maxlength="4" oninput="formatiereTipp(this); datenGeändert()">
+
+    <div class="manuell-box">
+        <div class="manuell-title">⚡ API-Notfall-Endergebnis (falls API klemmt)</div>
+        <input type="text" id="manuellesEndergebnis" class="tipp-input" inputmode="numeric" pattern="[0-9]*" placeholder="z.B. 2:1" maxlength="4" oninput="formatiereTipp(this)" style="background: white;">
+    </div>
 
     <div class="stats-box" id="statsDisplay">
         📊 Statistik: Ecki Siege: <span id="statEcki">0</span> | Steffi Siege: <span id="statSteffi">0</span> | Pott rollt seit <span id="statWochen">4</span> Wochen
@@ -485,19 +493,21 @@
         
         let ergebnisText = "";
 
-        // Prüfen, ob die API ein Endergebnis hat
-        if (match.matchResults && match.matchResults.length > 0) {
+        const manuellesErgebnis = document.getElementById('manuellesEndergebnis').value.trim();
+        if (manuellesErgebnis !== "") {
+            ergebnisText = manuellesErgebnis;
+        } 
+        else if (match.matchResults && match.matchResults.length > 0) {
             const endResult = match.matchResults.find(r => r.resultName === "Endergebnis") || match.matchResults[match.matchResults.length - 1];
             if (endResult && endResult.pointsTeam1 !== undefined && endResult.pointsTeam2 !== undefined) {
                 ergebnisText = `${endResult.pointsTeam1}:${endResult.pointsTeam2}`;
             }
         }
 
-        // Falls API noch leer ist: Flexibler Notfall-Dialog zum manuellen Eintragen
         if (!ergebnisText) {
-            let manuellesErgebnis = prompt(`Die API hat für ${match.team1.teamName} vs ${match.team2.teamName} noch kein Ergebnis.\n\nBitte gib das offizielle Endergebnis ein (z.B. 2:1):`);
-            if (!manuellesErgebnis) return;
-            ergebnisText = manuellesErgebnis.trim();
+            alert("Bitte trage das Endergebnis kurz oben in das gelbe Notfall-Feld ein (z.B. 2:1), da die API noch keine Daten liefert!");
+            document.getElementById('manuellesEndergebnis').focus();
+            return;
         }
 
         const meinTipp = document.getElementById('meinTipp').value.trim();
@@ -523,6 +533,7 @@
         
         document.getElementById('meinTipp').value = "";
         document.getElementById('kumpelTipp').value = "";
+        document.getElementById('manuellesEndergebnis').value = "";
         
         aktualisiereStatistikAnzeige();
         datenGeändert();
@@ -533,8 +544,13 @@
     function kopiereText() {
         const textFeld = document.getElementById('whatsappText');
         textFeld.select();
-        document.execCommand('copy');
-        alert("In die Zwischenablage kopiert!");
+        textFeld.setSelectionRange(0, 99999); // Für Handys optimiert
+        try {
+            document.execCommand('copy');
+            alert("In die Zwischenablage kopiert!");
+        } catch (err) {
+            alert("Kopieren fehlgeschlagen. Bitte manuell markieren.");
+        }
     }
 </script>
 
