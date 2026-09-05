@@ -102,16 +102,13 @@
     let manuellerOverride = null;
     let speicherTimer = null;
     
-    // Statistik-Variablen fix auf 4 Wochen gesetzt
     let statEckiSiege = 0;
     let statSteffiSiege = 0;
     let statPottWochen = 4;
 
     document.addEventListener("DOMContentLoaded", function() {
-        // Wir laden erst lokal/Cloud, erzwingen aber direkt die 4 Wochen, falls die Cloud-Daten älter sind
         ladeTabellenDaten();
         ladeBundesligaSpiele();
-        cloudLaden();
     });
 
     function datenGeändert() {
@@ -175,9 +172,6 @@
             const daten = data.record;
             if (daten && daten.p !== undefined) {
                 wendeDatenAn(daten);
-                // Direkt einmal in die Cloud zurückschreiben, damit die 4 Wochen dort festhängen
-                statPottWochen = 4;
-                cloudSpeichern();
             }
         })
         .catch(e => {
@@ -222,14 +216,16 @@
         
         statEckiSiege = daten.se !== undefined ? Number(daten.se) : 0;
         statSteffiSiege = daten.ss !== undefined ? Number(daten.ss) : 0;
-        // Wir erzwingen hier direkt die 4 Wochen, falls der Cloud-Wert kleiner war
-        statPottWochen = 4; 
+        statPottWochen = daten.sw !== undefined ? Number(daten.sw) : 4; 
         
         aktualisiereStatistikAnzeige();
 
-        if (daten.spiel !== undefined && document.getElementById('spielDropdown').querySelector(`option[value="${daten.spiel}"]`)) {
-            document.getElementById('spielDropdown').value = daten.spiel;
-            zeigeSpieltagDatum();
+        if (daten.spiel !== undefined && daten.spiel !== "") {
+            const dropdown = document.getElementById('spielDropdown');
+            if (dropdown.querySelector(`option[value="${daten.spiel}"]`)) {
+                dropdown.value = daten.spiel;
+                zeigeSpieltagDatum();
+            }
         }
         berechnePott();
     }
@@ -313,6 +309,7 @@
                     option.value = index;
                     dropdown.appendChild(option);
                 });
+                cloudLaden();
             })
             .catch(error => {
                 dropdown.innerHTML = '<option value="">Fehler beim Laden (Proxy prüfen)</option>';
@@ -338,7 +335,6 @@
         
         ueberschriftBox.innerText = `📅 ${spieltagName} | ${datumText} Uhr`;
         aktualisiereAnzeige();
-        datenGeändert();
     }
 
     function berechnePott() {
