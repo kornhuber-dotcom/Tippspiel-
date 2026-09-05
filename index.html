@@ -42,7 +42,7 @@
 
 <div class="card">
     <div class="update-banner">☁️ CLOUD AKTIV (FEST VERBUNDEN)</div>
-    <h2>Bundesliga Tippspiel Manager</h2>
+    <h2>⚽ Bundesliga Tippspiel Manager</h2>
     
     <div class="status-box" id="dranAnzeige">
         🎯 An der Reihe: Lädt...
@@ -87,7 +87,6 @@
 <script>
     const PROXY_URL = 'https://bundesliga-proxy.kornhuber.workers.dev/';
     
-    // Feste, exklusive Zugangsdaten für Ecki & Steffi Tippspiel
     const JSONBIN_API_KEY = '$2a$10$WCWLxJv.UHlEHE0BfIhKlOnK4EW0998m22B14RWRYb1VLoMBCxMbm';
     const JSONBIN_BIN_ID = '6a9c01a2da38895dfe3c0708';
 
@@ -112,7 +111,7 @@
         clearTimeout(speicherTimer);
         speicherTimer = setTimeout(() => {
             cloudSpeichern();
-        }, 800);
+        }, 500);
     }
 
     function lokalSpeichern() {
