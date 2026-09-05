@@ -8,6 +8,7 @@
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 15px; background: #f0f2f5; color: #1c1e21; max-width: 500px; margin: auto; }
         .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); margin-bottom: 15px; }
         h2 { margin-top: 0; color: #075e54; }
+        .update-banner { background: #2e7d32; color: white; padding: 8px; text-align: center; font-weight: bold; border-radius: 6px; margin-bottom: 12px; font-size: 0.9em; }
         label { font-weight: bold; display: block; margin-top: 12px; font-size: 0.9em; }
         input, select { width: 100%; padding: 10px; margin-top: 5px; border: 1px solid #ccc; border-radius: 8px; box-sizing: border-box; font-size: 1em; background: white; }
         
@@ -27,25 +28,19 @@
         .btn-group { display: flex; flex-direction: column; gap: 8px; margin-top: 15px; }
         button { width: 100%; color: white; border: none; padding: 12px; border-radius: 8px; font-weight: bold; font-size: 0.95em; cursor: pointer; text-align: left; }
         .btn-green { background: #25d366; }
-        .btn-green:hover { background: #128c7e; }
         .btn-orange { background: #ff9800; }
-        .btn-orange:hover { background: #e65100; }
         .btn-blue { background: #0288d1; }
-        .btn-blue:hover { background: #01579b; }
         .btn-purple { background: #9c27b0; }
-        .btn-purple:hover { background: #7b1fa2; }
         .btn-ai { background: #673ab7; text-align: center; }
-        .btn-ai:hover { background: #512da8; }
         .btn-switch { background: #607d8b; text-align: center; margin-top: 10px; }
-        .btn-switch:hover { background: #455a64; }
-        .btn-backup { background: #37474f; text-align: center; margin-top: 5px; font-size: 0.85em; padding: 8px; }
         
-        textarea { width: 100%; height: 160px; margin-top: 10px; border-radius: 8px; border: 1px solid #ccc; padding: 10px; box-sizing: border-box; font-family: sans-serif; }
+        textarea { width: 100%; height: 150px; margin-top: 10px; border-radius: 8px; border: 1px solid #ccc; padding: 10px; box-sizing: border-box; font-family: sans-serif; }
     </style>
 </head>
 <body>
 
 <div class="card">
+    <div class="update-banner">🚀 AUTOPILOT-SPEICHER AKTIV</div>
     <h2>⚽ Tippspiel Manager</h2>
     
     <div class="status-box" id="dranAnzeige">
@@ -53,23 +48,23 @@
     </div>
 
     <label>Aktueller Pott-Stand bisher (€):</label>
-    <input type="text" id="pottBisher" inputmode="numeric" pattern="[0-9]*" value="0" oninput="speichereDaten()">
+    <input type="text" id="pottBisher" inputmode="numeric" pattern="[0-9]*" value="0" oninput="allesSpeichern()">
 
     <div class="pott-display">💰 Pott am Wochenende: <span id="pottNeu">4</span> Euro</div>
 
     <div id="spieltagUeberschrift" class="spieltag-header">📅 Bitte Spiel auswählen</div>
     <label>Bundesliga-Spiel auswählen:</label>
-    <select id="spielDropdown" onchange="zeigeSpieltagDatum(); speichereDaten();">
+    <select id="spielDropdown" onchange="zeigeSpieltagDatum(); allesSpeichern();">
         <option value="">Lade aktuelle Spiele...</option>
     </select>
 
     <button class="btn-ai" onclick="generiereAiTipp()">🧠 Multi-Parameter KI-Prognose</button>
 
     <label>Dein Tipp (Ecki):</label>
-    <input type="text" id="meinTipp" class="tipp-input" inputmode="numeric" pattern="[0-9]*" placeholder="2:1" maxlength="4" oninput="formatiereTipp(this); speichereDaten()">
+    <input type="text" id="meinTipp" class="tipp-input" inputmode="numeric" pattern="[0-9]*" placeholder="2:1" maxlength="4" oninput="formatiereTipp(this); allesSpeichern()">
 
     <label>Tipp von Steffi:</label>
-    <input type="text" id="kumpelTipp" class="tipp-input" inputmode="numeric" pattern="[0-9]*" placeholder="1:1" maxlength="4" oninput="formatiereTipp(this); speichereDaten()">
+    <input type="text" id="kumpelTipp" class="tipp-input" inputmode="numeric" pattern="[0-9]*" placeholder="1:1" maxlength="4" oninput="formatiereTipp(this); allesSpeichern()">
 
     <div class="btn-group">
         <button class="btn-orange" onclick="generiereAufforderung()">📩 Text 1: Steffi auffordern</button>
@@ -78,12 +73,11 @@
         <button class="btn-purple" onclick="wertungPruefen()">🏆 Text 4: Auswertung & Ergebnis abrufen</button>
         
         <button class="btn-switch" onclick="manuellerWechsel()">🔄 Reihe manuell korrigieren</button>
-        <button class="btn-backup" onclick="exportiereBackup()">💾 Stand als Text kopieren (Backup)</button>
     </div>
 </div>
 
 <div class="card" id="outputCard" style="display: none;">
-    <h3>Generierter WhatsApp-Text / Backup:</h3>
+    <h3>Generierter WhatsApp-Text:</h3>
     <textarea id="whatsappText" readonly></textarea>
     <button onclick="kopiereText()" style="background: #333; text-align: center;">📋 In Zwischenablage kopieren</button>
 </div>
@@ -96,30 +90,48 @@
     let manuellerOverride = null;
 
     document.addEventListener("DOMContentLoaded", function() {
-        const params = new URLSearchParams(window.location.search);
-        
-        // Priorität 1: URL-Parameter auslesen
-        let pottVal = params.get('pott');
-        let meinTippVal = params.get('ecki');
-        let steffiTippVal = params.get('steffi');
-        let spielVal = params.get('spiel');
-        manuellerOverride = params.get('override') || null;
-
-        // Priorität 2: Falls URL leer ist, aus dem lokalen Browser-Speicher (localStorage) holen als Fallback
-        if (pottVal === null) pottVal = localStorage.getItem('tipp_pott') || '0';
-        if (meinTippVal === null) meinTippVal = localStorage.getItem('tipp_ecki') || '';
-        if (steffiTippVal === null) steffiTippVal = localStorage.getItem('tipp_steffi') || '';
-        if (spielVal === null) spielVal = localStorage.getItem('tipp_spiel') || '';
-        if (!manuellerOverride) manuellerOverride = localStorage.getItem('tipp_override') || null;
-
-        document.getElementById('pottBisher').value = pottVal;
-        document.getElementById('meinTipp').value = meinTippVal;
-        document.getElementById('kumpelTipp').value = steffiTippVal;
-
-        berechnePott();
+        datenLaden();
         ladeTabellenDaten();
         ladeBundesligaSpiele();
     });
+
+    function allesSpeichern() {
+        let pottVal = document.getElementById('pottBisher').value.replace(/[^0-9]/g, '');
+        document.getElementById('pottBisher').value = pottVal;
+
+        const spielIndex = document.getElementById('spielDropdown').value;
+        const meinTipp = document.getElementById('meinTipp').value;
+        const kumpelTipp = document.getElementById('kumpelTipp').value;
+
+        const datenPaket = {
+            pott: pottVal,
+            ecki: meinTipp,
+            steffi: kumpelTipp,
+            spiel: spielIndex,
+            override: manuellerOverride
+        };
+
+        // Speicherung in localStorage (Bleibt auch nach Schließen des Tabs erhalten)
+        try {
+            localStorage.setItem('tippspiel_pro_daten', JSON.stringify(datenPaket));
+        } catch(e) {}
+
+        berechnePott();
+    }
+
+    function datenLaden() {
+        try {
+            const gespeichert = localStorage.getItem('tippspiel_pro_daten');
+            if (gespeichert) {
+                const daten = JSON.parse(gespeichert);
+                document.getElementById('pottBisher').value = daten.pott || '0';
+                document.getElementById('meinTipp').value = daten.ecki || '';
+                document.getElementById('kumpelTipp').value = daten.steffi || '';
+                manuellerOverride = daten.override || null;
+            }
+        } catch(e) {}
+        berechnePott();
+    }
 
     function ladeTabellenDaten() {
         fetch(PROXY_URL + 'getbltable/bl1')
@@ -142,36 +154,6 @@
             wert = wert.substring(0, 1) + ':' + wert.substring(1, 3);
         }
         input.value = wert;
-    }
-
-    function speichereDaten() {
-        let pottVal = document.getElementById('pottBisher').value.replace(/[^0-9]/g, '');
-        document.getElementById('pottBisher').value = pottVal;
-
-        const spielIndex = document.getElementById('spielDropdown').value;
-        const meinTipp = document.getElementById('meinTipp').value;
-        const kumpelTipp = document.getElementById('kumpelTipp').value;
-
-        // 1. Speichern im LocalStorage (normaler Browser-Speicher)
-        localStorage.setItem('tipp_pott', pottVal);
-        localStorage.setItem('tipp_ecki', meinTipp);
-        localStorage.setItem('tipp_steffi', kumpelTipp);
-        localStorage.setItem('tipp_spiel', spielIndex);
-        if (manuellerOverride) localStorage.setItem('tipp_override', manuellerOverride);
-        else localStorage.removeItem('tipp_override');
-
-        // 2. Speichern in der URL (als Backup)
-        const params = new URLSearchParams();
-        if (pottVal && pottVal !== '0') params.set('pott', pottVal);
-        if (spielIndex !== "") params.set('spiel', spielIndex);
-        if (meinTipp) params.set('ecki', meinTipp);
-        if (kumpelTipp) params.set('steffi', kumpelTipp);
-        if (manuellerOverride) params.set('override', manuellerOverride);
-
-        const neuerPfad = window.location.pathname + (params.toString() ? '?' + params.toString() : '');
-        window.history.replaceState({}, '', neuerPfad);
-
-        berechnePott();
     }
 
     function ermittleWerIstDran(match) {
@@ -206,7 +188,7 @@
         const match = (selectedIndex !== "" && aktuelleSpieleDaten[selectedIndex]) ? aktuelleSpieleDaten[selectedIndex] : null;
         const aktuell = ermittleWerIstDran(match);
         manuellerOverride = (aktuell === 'Steffi') ? 'Ecki' : 'Steffi';
-        speichereDaten();
+        allesSpeichern();
         aktualisiereAnzeige();
     }
 
@@ -225,13 +207,17 @@
                     dropdown.appendChild(option);
                 });
 
-                const gespeichertesSpiel = localStorage.getItem('tipp_spiel') || new URLSearchParams(window.location.search).get('spiel');
-                if (gespeichertesSpiel !== null && gespeichertesSpiel !== "" && dropdown.querySelector(`option[value="${gespeichertesSpiel}"]`)) {
-                    dropdown.value = gespeichertesSpiel;
-                    zeigeSpieltagDatum();
-                } else {
-                    aktualisiereAnzeige();
-                }
+                // Versuche, das gespeicherte Spiel wiederherzustellen
+                try {
+                    const gespeichert = JSON.parse(localStorage.getItem('tippspiel_pro_daten') || '{}');
+                    if (gespeichert.spiel !== undefined && gespeichert.spiel !== "" && dropdown.querySelector(`option[value="${gespeichert.spiel}"]`)) {
+                        dropdown.value = gespeichert.spiel;
+                        zeigeSpieltagDatum();
+                        return;
+                    }
+                } catch(e) {}
+                
+                aktualisiereAnzeige();
             })
             .catch(error => {
                 dropdown.innerHTML = '<option value="">Fehler beim Laden (Proxy prüfen)</option>';
@@ -256,7 +242,7 @@
         
         ueberschriftBox.innerText = `📅 ${spieltagName} | ${datumText} Uhr`;
         aktualisiereAnzeige();
-        speichereDaten();
+        allesSpeichern();
     }
 
     function berechnePott() {
@@ -283,23 +269,16 @@
 
     function generiereAiTipp() {
         const selectedIndex = document.getElementById('spielDropdown').value;
-        if (selectedIndex === "") { 
-            alert("Bitte wähle zuerst ein Spiel aus!"); 
-            return; 
-        }
+        if (selectedIndex === "") { alert("Bitte wähle zuerst ein Spiel aus!"); return; }
 
         const match = aktuelleSpieleDaten[selectedIndex];
         const t1 = match.team1.teamName;
         const t2 = match.team2.teamName;
 
-        let stärke1 = getTeamPower(t1);
+        let stärke1 = getTeamPower(t1) + 3.0; // Heimvorteil
         let stärke2 = getTeamPower(t2);
-
-        stärke1 += 3.0; // Heimvorteil
-
         let diff = stärke1 - stärke2;
-        let toreHeim = 1;
-        let toreGast = 1;
+        let toreHeim = 1, toreGast = 1;
 
         if (diff > 8) { toreHeim = 3; toreGast = 0; }
         else if (diff > 4) { toreHeim = 2; toreGast = 0; }
@@ -311,9 +290,8 @@
 
         const kiTipp = `${toreHeim}:${toreGast}`;
         document.getElementById('meinTipp').value = kiTipp;
-        speichereDaten();
-        
-        alert(`🧠 KI-Prognose für ${t1} vs ${t2}:\nAnalysiert anhand Kaderstärke, aktueller Tabelle & Heimvorteil!\n\nEmpfohlener Tipp für Ecki: ${kiTipp}`);
+        allesSpeichern();
+        alert(`🧠 KI-Prognose (${t1} vs ${t2}): Empfohlener Tipp für Ecki: ${kiTipp}`);
     }
 
     function zeigeOutput(text) {
@@ -323,95 +301,62 @@
 
     function generiereAufforderung() {
         const pott = document.getElementById('pottNeu').innerText;
-        const text = `Hallo liebe Steffi,\nwieder steht unser Tippspiel an ⚽, suchst du bitte ein Spiel aus? Im Pott sind ${pott} Euro 💰.\n\nLiebe Grüße\nEcki 🍀`;
-        zeigeOutput(text);
+        zeigeOutput(`Hallo liebe Steffi,\nwieder steht unser Tippspiel an ⚽, suchst du bitte ein Spiel aus? Im Pott sind ${pott} Euro 💰.\n\nLiebe Grüße und ein schönes Wochenende\nEcki 🍀`);
     }
 
     function generiereEigenesSpiel() {
         const selectedIndex = document.getElementById('spielDropdown').value;
         if (selectedIndex === "") { alert("Bitte wähle zuerst ein Spiel aus!"); return; }
-        
         const match = aktuelleSpieleDaten[selectedIndex];
-        const spiel = `${match.team1.teamName} gegen ${match.team2.teamName}`;
         const tipp = document.getElementById('meinTipp').value || "[dein Tipp]";
         const pott = document.getElementById('pottNeu').innerText;
-
-        const text = `Hallo liebe Steffi,\nwieder steht unser Tippspiel an ⚽, wir nehmen diesmal ${spiel} und ich tippe ${tipp} 🎯. Im Pott sind ${pott} Euro 💰.\n\nLiebe Grüße und ein schönes Wochenende\nEcki 🍀`;
-        zeigeOutput(text);
+        zeigeOutput(`Hallo liebe Steffi,\nwieder steht unser Tippspiel an ⚽, wir nehmen diesmal ${match.team1.teamName} gegen ${match.team2.teamName} und ich tippe ${tipp} 🎯. Im Pott sind ${pott} Euro 💰.\n\nLiebe Grüße und ein schönes Wochenende\nEcki 🍀`);
     }
 
     function generiereKomplett() {
         const selectedIndex = document.getElementById('spielDropdown').value;
         if (selectedIndex === "") { alert("Bitte wähle zuerst ein Spiel aus!"); return; }
-        
         const match = aktuelleSpieleDaten[selectedIndex];
-        const spiel = `${match.team1.teamName} gegen ${match.team2.teamName}`;
         const meinTipp = document.getElementById('meinTipp').value || "-:-";
         const kumpelTipp = document.getElementById('kumpelTipp').value || "-:-";
         const pott = document.getElementById('pottNeu').innerText;
-
-        if (meinTipp !== "-:-" && meinTipp === kumpelTipp) {
-            alert("Achtung: Ihr könnt nicht das gleiche Ergebnis tippen!");
-            return;
-        }
-
-        const text = `Hallo liebe Steffi,\nunser Tipp steht fest! ⚽\n\n📌 Spiel: ${spiel}\n👤 Ecki: ${meinTipp}\n👤 Steffi: ${kumpelTipp}\n\n💰 Im Pott sind ${pott} Euro.\n\nLiebe Grüße und ein schönes Wochenende\nEcki 🍀`;
-        zeigeOutput(text);
+        zeigeOutput(`Hallo liebe Steffi,\nunser Tipp steht fest! ⚽\n\n📌 Spiel: ${match.team1.teamName} gegen ${match.team2.teamName}\n👤 Ecki: ${meinTipp}\n👤 Steffi: ${kumpelTipp}\n\n💰 Im Pott sind ${pott} Euro.\n\nLiebe Grüße und ein schönes Wochenende\nEcki 🍀`);
     }
 
     function wertungPruefen() {
-        const selectedIndex = document.getElementById('spielDropdown' ).value;
-        if (selectedIndex === "") { alert("Bitte wähle zuerst das Spiel aus, das ausgewertet werden soll!"); return; }
-
+        const selectedIndex = document.getElementById('spielDropdown').value;
+        if (selectedIndex === "") { alert("Bitte wähle zuerst das Spiel aus!"); return; }
         const match = aktuelleSpieleDaten[selectedIndex];
-        const spielName = `${match.team1.teamName} gegen ${match.team2.teamName}`;
+        if (!match.matchIsFinished) { alert("Das Spiel ist noch nicht beendet!"); return; }
+
+        const endResult = match.matchResults.find(r => r.resultName === "Endergebnis") || match.matchResults[match.matchResults.length - 1];
+        const ergebnisText = `${endResult.pointsTeam1}:${endResult.pointsTeam2}`;
         const meinTipp = document.getElementById('meinTipp').value.trim();
         const steffiTipp = document.getElementById('kumpelTipp').value.trim();
         const pottNeu = parseFloat(document.getElementById('pottNeu').innerText);
 
-        if (!match.matchIsFinished) {
-            alert("Das Spiel ist noch nicht beendet oder die Daten liegen noch nicht vor!");
-            return;
-        }
-
-        const endResult = match.matchResults.find(r => r.resultName === "Endergebnis") || match.matchResults[match.matchResults.length - 1];
-        const ergebnisText = `${endResult.pointsTeam1}:${endResult.pointsTeam2}`;
-
         let gewinnText = "";
         if (ergebnisText === steffiTipp) {
-            gewinnText = `🎉 Dein Volltreffer! Du gewinnst den Pott von ${pottNeu} Euro. Ich freue mich für dich. 🏆`;
+            gewinnText = `🎉 Dein Volltreffer! Du gewinnst den Pott von ${pottNeu} Euro. 🏆`;
             document.getElementById('pottBisher').value = 0;
         } else if (ergebnisText === meinTipp) {
             gewinnText = `🎉 Mein Volltreffer! Ich gewinne den Pott von ${pottNeu} Euro. 🏆`;
-            document.getElementById('pottBisher'].value = 0;
+            document.getElementById('pottBisher').value = 0;
         } else {
             gewinnText = `Niemand hat richtig getippt. 🙁 Der Pott bleibt stehen und wächst weiter! 💰`;
             document.getElementById('pottBisher').value = pottNeu;
         }
-
         document.getElementById('meinTipp').value = "";
         document.getElementById('kumpelTipp').value = "";
-        speichereDaten();
-
-        const whatsappAuswertung = `Hallo liebe Steffi,\ndas Spiel ist aus! ⚽\n\n📌 ${spielName}\n📊 Endergebnis: ${ergebnisText}\n\n👤 Ecki tippte: ${meinTipp}\n👤 Steffi tippte: ${steffiTipp}\n\n${gewinnText}\n\nLiebe Grüße und eine schöne Woche 🍀\nEcki`;
-        zeigeOutput(whatsappAuswertung);
-    }
-
-    function exportiereBackup() {
-        const pott = document.getElementById('pottBisher').value || '0';
-        const ecki = document.getElementById('meinTipp').value || '-';
-        const steffi = document.getElementById('kumpelTipp').value || '-';
-        
-        const backupText = `Tippspiel-Backup:\nPott bisher: ${pott}\nEcki Tipp: ${ecki}\nSteffi Tipp: ${steffi}`;
-        zeigeOutput(backupText);
-        alert("Backup generiert! Du kannst den Text unten in WhatsApp oder in deine Notizen kopieren, falls dein Browser beim Aufräumen alles löscht.");
+        allesSpeichern();
+        zeigeOutput(`Hallo liebe Steffi,\ndas das Spiel ist aus! ⚽\n\n📌 ${match.team1.teamName} gegen ${match.team2.teamName}\n📊 Endergebnis: ${ergebnisText}\n\n👤 Ecki: ${meinTipp}\n👤 Steffi: ${steffiTipp}\n\n${gewinnText}\n\nEcki 🍀`);
     }
 
     function kopiereText() {
         const textFeld = document.getElementById('whatsappText');
         textFeld.select();
         document.execCommand('copy');
-        alert("Text kopiert!");
+        alert("In die Zwischenablage kopiert!");
     }
 </script>
 
